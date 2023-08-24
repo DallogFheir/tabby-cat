@@ -9,8 +9,16 @@
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png"
   },
+  "browser_action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    },
+    "default_title": "TabbyCat",
+    "default_popup": "popup/popup.html"
+  },
   "background": {
     "scripts": ["background.ts"]
   },
-  "permissions": ["menus"]
+  "permissions": ["menus", "storage", "tabs"]
 }

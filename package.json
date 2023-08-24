@@ -6,13 +6,14 @@
   "type": "module",
   "scripts": {
     "build": "parcel build ./src/manifest.json",
-    "dev": "parcel ./src/manifest.json",
-    "debug": "cd dist && web-ext run"
+    "dev": "parcel watch ./src/manifest.json",
+    "debug": "cd dist && web-ext run --arg=\"--new-tab=about:debugging#/runtime/this-firefox\""
   },
   "author": "DallogFheir",
   "license": "MIT",
   "devDependencies": {
     "@parcel/config-webextension": "^2.9.3",
+    "@parcel/transformer-sass": "^2.9.3",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
     "eslint": "^8.47.0",
@@ -21,6 +22,7 @@
     "parcel": "^2.9.3",
     "prettier": "^3.0.2",
     "typescript": "^5.1.6",
-    "web-ext": "^7.6.2"
+    "web-ext": "^7.6.2",
+    "web-ext-types": "^3.2.1"
   }
 }

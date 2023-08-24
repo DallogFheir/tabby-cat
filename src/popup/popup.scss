@@ -1,0 +1,33 @@
+@use "../styles/vars";
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Ubuntu", sans-serif;
+  color: vars.$color-text;
+  background-color: vars.$color-background;
+  padding: 0.7rem;
+}
+
+header {
+  display: flex;
+  gap: 1em;
+
+  h1 {
+    font-size: 1em;
+  }
+}
+
+.icon-settings {
+  transition: transform 0.5s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    transform: rotate(40deg);
+  }
+}
