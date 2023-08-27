@@ -1,6 +1,6 @@
+import type { Favicon, FaviconData } from "./models/Favicon";
 import type { Maybe } from "./models/Maybe";
 import type { TabAction, TabGroup } from "./models/Tabs";
-
 class TabbyCat {
   static #isInternallyConstructing = false;
   static #instance: Maybe<TabbyCat>;
@@ -61,6 +61,28 @@ class TabbyCat {
     browser.menus.onShown.addListener(this.#updateMenu);
   }
 
+  async #changeFavicon(tabId: number, iconUrl: Maybe<string>): Promise<void> {
+    let favicon: Maybe<Favicon> = null;
+
+    if (iconUrl?.includes("x-tabby-cat=true")) {
+      return;
+    }
+
+    if (iconUrl) {
+      const resp = await fetch(iconUrl);
+      if (resp.headers.get("content-type") === "image/svg+xml") {
+        favicon = await resp.text();
+      } else {
+        favicon = await resp.blob();
+      }
+    }
+
+    browser.tabs.sendMessage(tabId, {
+      favicon,
+      color: "#ff0000", // #TODO: take color from group
+    } satisfies FaviconData);
+  }
+
   async #tabListener(
     tabOrTabId: browser.tabs.Tab | number,
     tabAction: TabAction
@@ -119,6 +141,18 @@ class TabbyCat {
     await browser.storage.local.set({ tabGroups: JSON.stringify(tabGroups) });
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
+    browser.tabs.onUpdated.addListener(
+      (tabId, { favIconUrl }) => {
+        if (favIconUrl !== undefined) {
+          this.#changeFavicon(tabId, favIconUrl);
+        }
+      },
+      /* eslint-disable-next-line */
+      /* @ts-ignore */
+      {
+        properties: ["favIconUrl"],
+      }
+    );
     browser.tabs.onRemoved.addListener((tabId) =>
       this.#tabListener(tabId, "REMOVE")
     );

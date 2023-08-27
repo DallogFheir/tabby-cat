@@ -17,6 +17,13 @@
     "default_title": "TabbyCat",
     "default_popup": "popup/popup.html"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["favicon-changer.ts"],
+      "run_at": "document_start"
+    }
+  ],
   "background": {
     "scripts": ["background.ts"]
   },

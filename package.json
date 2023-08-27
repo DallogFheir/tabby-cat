@@ -13,6 +13,7 @@
   "license": "MIT",
   "devDependencies": {
     "@parcel/config-webextension": "^2.9.3",
+    "@parcel/transformer-inline-string": "^2.9.3",
     "@parcel/transformer-sass": "^2.9.3",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
