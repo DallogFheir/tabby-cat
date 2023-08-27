@@ -55,6 +55,7 @@ class TabbyCat {
     browser.menus.create({
       id: "separator",
       type: "separator",
+      contexts: ["tab"],
     });
 
     browser.menus.create({
@@ -66,8 +67,45 @@ class TabbyCat {
     browser.menus.refresh();
   }
 
+  async #handleMenuClick(
+    info: browser.menus.OnClickData,
+    tab: browser.tabs.Tab
+  ): Promise<void> {
+    const newGroupId = Number(
+      String(info.menuItemId).match(/^group-(\d+)$/)?.[1] ?? NaN
+    );
+    const tabId = tab.id;
+    const tabGroups = await this.#getTabGroups();
+
+    const oldGroup = tabGroups?.find((tabGroup) =>
+      (tabGroup.tabIds as (number | undefined)[]).includes(tabId)
+    );
+    const newGroup = tabGroups?.find(
+      (tabGroup) => tabGroup.groupId === newGroupId
+    );
+
+    if (
+      newGroupId &&
+      tabGroups &&
+      tabId !== undefined &&
+      oldGroup &&
+      newGroup
+    ) {
+      oldGroup.tabIds = oldGroup.tabIds.filter(
+        (tabInGroupId) => tabInGroupId !== tabId
+      );
+
+      newGroup.tabIds.push(tabId);
+
+      browser.storage.local.set({
+        tabGroups: JSON.stringify(tabGroups),
+      });
+    }
+  }
+
   #initContextMenuListener(): void {
     browser.menus.onShown.addListener(this.#updateMenu);
+    browser.menus.onClicked.addListener(this.#handleMenuClick.bind(this));
   }
 
   async #changeFavicon(tabId: number, iconUrl: Maybe<string>): Promise<void> {
