@@ -1,6 +1,7 @@
 import type { Favicon, FaviconData } from "./models/Favicon";
 import type { Maybe } from "./models/Maybe";
 import type { TabAction, TabGroup } from "./models/Tabs";
+
 class TabbyCat {
   static #isInternallyConstructing = false;
   static #instance: Maybe<TabbyCat>;
@@ -22,6 +23,12 @@ class TabbyCat {
     }
   }
 
+  async #getTabGroups(): Promise<Maybe<TabGroup[]>> {
+    const tabGroups = (await browser.storage.local.get("tabGroups")).tabGroups;
+
+    return tabGroups ? JSON.parse(tabGroups as string) : null;
+  }
+
   async #updateMenu(
     _: browser.menus.OnClickData,
     tab: browser.tabs.Tab
@@ -35,11 +42,11 @@ class TabbyCat {
 
     tabGroups.forEach((group) => {
       browser.menus.create({
-        id: `group-${group.groupName}`,
+        id: `group-${group.groupId}`,
         title: group.groupName,
         type: "radio",
         checked:
-          group.tabs.find((tabInGroup) => tabInGroup.id === tab.id) !==
+          group.tabIds.find((tabInGroupId) => tabInGroupId === tab.id) !==
           undefined,
         contexts: ["tab"],
       });
@@ -55,6 +62,8 @@ class TabbyCat {
       title: "New group...",
       contexts: ["tab"],
     });
+
+    browser.menus.refresh();
   }
 
   #initContextMenuListener(): void {
@@ -83,38 +92,79 @@ class TabbyCat {
     } satisfies FaviconData);
   }
 
+  async #updateGroupTitle(tabId: number, title: string): Promise<void> {
+    const tabGroups = await this.#getTabGroups();
+
+    if (tabGroups) {
+      outer: for (const tabGroup of tabGroups) {
+        if (tabGroup.updatesToGo !== 0) {
+          for (const tabInGroupId of tabGroup.tabIds) {
+            if (tabInGroupId === tabId) {
+              tabGroup.updatesToGo--;
+
+              if (tabGroup.updatesToGo === 0) {
+                tabGroup.groupName = title;
+              }
+
+              break outer;
+            }
+          }
+        }
+      }
+
+      browser.storage.local.set({
+        tabGroups: JSON.stringify(tabGroups),
+      });
+    }
+  }
+
   async #tabListener(
     tabOrTabId: browser.tabs.Tab | number,
     tabAction: TabAction
   ): Promise<void> {
-    const currentState = await browser.storage.local.get("tabGroups");
+    const tabGroups = await this.#getTabGroups();
 
-    if (currentState?.tabGroups) {
-      const currentTabGroups = JSON.parse(
-        currentState.tabGroups as string
-      ) as TabGroup[];
+    if (tabGroups) {
+      let res: Maybe<TabGroup[]> = null;
 
-      let res: Maybe<TabGroup[]>;
       switch (tabAction) {
         case "ADD": {
           const tab = tabOrTabId as browser.tabs.Tab;
+          const tabId = tab.id;
 
-          res = currentTabGroups.concat([
-            {
-              tabs: [tab],
-              groupName: tab?.title ?? "New group",
-            },
-          ]);
+          if (tabId !== undefined) {
+            let freeId = 1;
+            tabGroups
+              .sort((a, b) => a.groupId - b.groupId)
+              .every((group) => {
+                if (group.groupId === freeId) {
+                  freeId++;
+                  return true;
+                }
 
+                return false;
+              });
+
+            res = tabGroups.concat([
+              {
+                groupId: freeId,
+                groupName: tab?.title ?? "New group",
+                tabIds: [tabId],
+                updatesToGo: tab.url === "about:newtab" ? 2 : 1,
+              },
+            ]);
+          }
           break;
         }
         case "REMOVE": {
           const tabId = tabOrTabId as number;
 
-          res = currentTabGroups
+          res = tabGroups
             .map((tabGroup) => ({
-              tabs: tabGroup.tabs.filter((tab) => tab?.id !== tabId),
-              groupName: tabGroup.groupName,
+              ...tabGroup,
+              tabs: tabGroup.tabIds.filter(
+                (tabInGroupId) => tabInGroupId !== tabId
+              ),
             }))
             .filter((tabGroup) => tabGroup.tabs.length > 0);
 
@@ -133,24 +183,34 @@ class TabbyCat {
 
   async #initTabListener(): Promise<void> {
     const tabs = await browser.tabs.query({});
-    const tabGroups: TabGroup[] = tabs.map((tab) => ({
-      tabs: [tab],
-      groupName: tab?.title ?? "New group",
-    }));
+    let groupId = 1;
+    const tabGroups: TabGroup[] = tabs
+      .filter((tab) => tab.id !== undefined)
+      .map((tab) => {
+        return {
+          groupId: groupId++,
+          groupName: tab?.title ?? "New group",
+          tabIds: [tab.id!],
+          updatesToGo: 0,
+        };
+      });
 
     await browser.storage.local.set({ tabGroups: JSON.stringify(tabGroups) });
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
-      (tabId, { favIconUrl }) => {
+      (tabId, { favIconUrl, title }) => {
         if (favIconUrl !== undefined) {
           this.#changeFavicon(tabId, favIconUrl);
+        }
+        if (title) {
+          this.#updateGroupTitle(tabId, title);
         }
       },
       /* eslint-disable-next-line */
       /* @ts-ignore */
       {
-        properties: ["favIconUrl"],
+        properties: ["favIconUrl", "title"],
       }
     );
     browser.tabs.onRemoved.addListener((tabId) =>
