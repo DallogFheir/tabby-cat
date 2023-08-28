@@ -11,23 +11,80 @@ body {
   font-family: "Ubuntu", sans-serif;
   color: vars.$color-text;
   background-color: vars.$color-background;
-  padding: 0.7rem;
+  padding: 1rem;
+  width: vars.$popup-width;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 header {
   display: flex;
+  justify-content: space-between;
   gap: 1em;
 
   h1 {
-    font-size: 1em;
+    font-size: 1.4em;
   }
 }
 
+hr {
+  margin: 0.5em 0;
+}
+
+ul {
+  list-style-type: none;
+}
+
 .icon-settings {
-  transition: transform 0.5s ease-in-out;
   cursor: pointer;
+  transition: transform 0.5s ease-in-out;
 
   &:hover {
     transform: rotate(40deg);
+  }
+}
+
+.tab-group {
+  font-weight: bold;
+  width: calc(vars.$popup-width - 2rem);
+
+  &:not(:last-child) {
+    margin-bottom: 0.5em;
+  }
+
+  &-shown {
+    &::before {
+      content: "▼";
+      margin-right: 0.25em;
+    }
+  }
+
+  &-hidden {
+    &::before {
+      content: "►";
+      margin-right: 0.25em;
+    }
+  }
+
+  &-title {
+    width: calc(100% - 2em);
+    display: inline-flex;
+    justify-content: space-between;
+
+    &-text {
+      cursor: pointer;
+      width: calc(vars.$popup-width - 2rem - 6em);
+      @include vars.hidden-text;
+    }
+
+    &-showhide {
+      cursor: pointer;
+    }
+  }
+
+  &-tab {
+    width: calc(vars.$popup-width - 2rem - 1.3em);
+    font-weight: normal;
+    padding-left: 1.3em;
   }
 }

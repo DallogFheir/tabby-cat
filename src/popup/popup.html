@@ -5,34 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TabbyCat</title>
     <link rel="stylesheet" href="popup.scss" />
-    <script defer src="../vendor/alpine.js"></script>
+    <script type="module" src="popup.ts"></script>
   </head>
   <body
-    x-data="{ tabGroups: []}"
+    x-data="{ tabGroups: [] }"
     x-init="tabGroups = JSON.parse((await browser.storage.local.get('tabGroups'))?.tabGroups ?? '[]')"
+    @x-tabbycat-update="tabGroups = $event.detail.tabGroups"
   >
     <header>
       <h1>TabbyCat</h1>
-      <p class="icon-settings">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          class="bi bi-gear-fill"
-          viewBox="0 0 16 16"
-        >
-          <path
-            d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"
-          />
-        </svg>
-      </p>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="1.4em"
+        height="1.4em"
+        fill="currentColor"
+        class="icon-settings"
+        viewBox="0 0 16 16"
+      >
+        <path
+          d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"
+        />
+      </svg>
     </header>
     <hr />
     <main>
       <ul>
         <template x-for="tabGroup in tabGroups">
-          <li x-text="tabGroup.groupName"></li>
+          <li class="tab-group" x-data="{ shown: true }">
+            <div class="tab-group-title">
+              <span
+                class="tab-group-title-text"
+                x-bind:class="shown ? 'tab-group-shown' : 'tab-group-hidden'"
+                x-text="tabGroup.groupName"
+                @click="shown = !shown"
+              ></span>
+              <template x-if="!tabGroup.hidden">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  class="tab-group-title-showhide"
+                  viewBox="0 0 16 16"
+                  @click="$store.functions.showHideGroup(tabGroup.groupId, 'HIDE')"
+                >
+                  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" />
+                  <path
+                    d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"
+                  /></svg
+              ></template>
+              <template x-if="tabGroup.hidden">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  class="tab-group-title-showhide"
+                  viewBox="0 0 16 16"
+                  @click="$store.functions.showHideGroup(tabGroup.groupId, 'SHOW')"
+                >
+                  <path
+                    d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"
+                  />
+                  <path
+                    d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"
+                  />
+                </svg>
+              </template>
+            </div>
+            <template x-if="shown">
+              <ul class="tab-group-tab">
+                <template x-for="tabId in tabGroup.tabIds">
+                  <li x-text="(await browser.tabs.get(tabId)).title"></li>
+                </template>
+              </ul>
+            </template>
+          </li>
         </template>
       </ul>
     </main>

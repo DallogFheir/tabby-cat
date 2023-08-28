@@ -1,2 +1,10 @@
 $color-background: #c6c6c6;
 $color-text: black;
+
+$popup-width: 20rem;
+
+@mixin hidden-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -111,7 +111,10 @@ class TabbyCat {
   async #changeFavicon(tabId: number, iconUrl: Maybe<string>): Promise<void> {
     let favicon: Maybe<Favicon> = null;
 
-    if (iconUrl?.includes("x-tabby-cat=true")) {
+    if (
+      iconUrl?.includes("x-tabby-cat=true") ||
+      iconUrl?.startsWith("chrome:")
+    ) {
       return;
     }
 
@@ -187,6 +190,7 @@ class TabbyCat {
               {
                 groupId: freeId,
                 groupName: tab?.title ?? "New group",
+                hidden: false,
                 tabIds: [tabId],
                 updatesToGo: tab.url === "about:newtab" ? 2 : 1,
               },
@@ -228,6 +232,7 @@ class TabbyCat {
         return {
           groupId: groupId++,
           groupName: tab?.title ?? "New group",
+          hidden: false,
           tabIds: [tab.id!],
           updatesToGo: 0,
         };

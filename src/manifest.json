@@ -27,5 +27,5 @@
   "background": {
     "scripts": ["background.ts"]
   },
-  "permissions": ["menus", "storage", "tabs"]
+  "permissions": ["menus", "storage", "tabHide", "tabs"]
 }
