@@ -30,9 +30,15 @@
     <hr />
     <main>
       <ul>
+        <template x-if="tabGroups.length === 0">
+          <span>Empty here...</span>
+        </template>
         <template x-for="tabGroup in tabGroups">
           <li class="tab-group" x-data="{ shown: true }">
-            <div class="tab-group-title">
+            <div
+              class="tab-group-title"
+              x-bind:style="{ color: tabGroup.color }"
+            >
               <span
                 class="tab-group-title-text"
                 x-bind:class="shown ? 'tab-group-shown' : 'tab-group-hidden'"

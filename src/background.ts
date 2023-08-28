@@ -1,6 +1,11 @@
 import type { Favicon, FaviconData } from "./models/Favicon";
 import type { Maybe } from "./models/Maybe";
-import type { TabAction, TabGroup } from "./models/Tabs";
+import {
+  colors,
+  type Color,
+  type TabAction,
+  type TabGroup,
+} from "./models/Tabs";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
@@ -29,6 +34,17 @@ class TabbyCat {
     return tabGroups ? JSON.parse(tabGroups as string) : null;
   }
 
+  #getColor(currentColors: Color[]): Color {
+    let colorsToPick: Readonly<Color[]> = colors.filter(
+      (color) => !currentColors.includes(color)
+    );
+    if (colorsToPick.length === 0) {
+      colorsToPick = colors;
+    }
+
+    return colorsToPick[Math.floor(Math.random() * colorsToPick.length)];
+  }
+
   async #updateMenu(
     _: browser.menus.OnClickData,
     tab: browser.tabs.Tab
@@ -40,29 +56,34 @@ class TabbyCat {
 
     browser.menus.removeAll();
 
-    tabGroups.forEach((group) => {
+    if (
+      tab.url !== undefined &&
+      (!tab.url?.startsWith("about:") || tab.url === "about:newtab")
+    ) {
+      tabGroups.forEach((group) => {
+        browser.menus.create({
+          id: `group-${group.groupId}`,
+          title: group.groupName,
+          type: "radio",
+          checked:
+            group.tabIds.find((tabInGroupId) => tabInGroupId === tab.id) !==
+            undefined,
+          contexts: ["tab"],
+        });
+      });
+
       browser.menus.create({
-        id: `group-${group.groupId}`,
-        title: group.groupName,
-        type: "radio",
-        checked:
-          group.tabIds.find((tabInGroupId) => tabInGroupId === tab.id) !==
-          undefined,
+        id: "separator",
+        type: "separator",
         contexts: ["tab"],
       });
-    });
 
-    browser.menus.create({
-      id: "separator",
-      type: "separator",
-      contexts: ["tab"],
-    });
-
-    browser.menus.create({
-      id: "new-group",
-      title: "New group...",
-      contexts: ["tab"],
-    });
+      browser.menus.create({
+        id: "new-group",
+        title: "New group...",
+        contexts: ["tab"],
+      });
+    }
 
     browser.menus.refresh();
   }
@@ -109,28 +130,38 @@ class TabbyCat {
   }
 
   async #changeFavicon(tabId: number, iconUrl: Maybe<string>): Promise<void> {
-    let favicon: Maybe<Favicon> = null;
+    const tabGroups = await this.#getTabGroups();
 
-    if (
-      iconUrl?.includes("x-tabby-cat=true") ||
-      iconUrl?.startsWith("chrome:")
-    ) {
-      return;
-    }
+    if (tabGroups) {
+      const tabGroup = tabGroups.find((tabGroup) =>
+        tabGroup.tabIds.some((tabInGroupId) => tabInGroupId === tabId)
+      );
 
-    if (iconUrl) {
-      const resp = await fetch(iconUrl);
-      if (resp.headers.get("content-type") === "image/svg+xml") {
-        favicon = await resp.text();
-      } else {
-        favicon = await resp.blob();
+      if (tabGroup) {
+        let favicon: Maybe<Favicon> = null;
+
+        if (
+          iconUrl?.includes("x-tabby-cat=true") ||
+          iconUrl?.startsWith("chrome:")
+        ) {
+          return;
+        }
+
+        if (iconUrl) {
+          const resp = await fetch(iconUrl);
+          if (resp.headers.get("content-type") === "image/svg+xml") {
+            favicon = await resp.text();
+          } else {
+            favicon = await resp.blob();
+          }
+        }
+
+        browser.tabs.sendMessage(tabId, {
+          favicon,
+          color: tabGroup.color,
+        } satisfies FaviconData);
       }
     }
-
-    browser.tabs.sendMessage(tabId, {
-      favicon,
-      color: "#ff0000", // #TODO: take color from group
-    } satisfies FaviconData);
   }
 
   async #updateGroupTitle(tabId: number, title: string): Promise<void> {
@@ -171,6 +202,11 @@ class TabbyCat {
       switch (tabAction) {
         case "ADD": {
           const tab = tabOrTabId as browser.tabs.Tab;
+
+          if (tab.url?.startsWith("about:") && tab.url !== "about:newtab") {
+            return;
+          }
+
           const tabId = tab.id;
 
           if (tabId !== undefined) {
@@ -190,6 +226,9 @@ class TabbyCat {
               {
                 groupId: freeId,
                 groupName: tab?.title ?? "New group",
+                color: this.#getColor(
+                  tabGroups.map((tabGroup) => tabGroup.color)
+                ),
                 hidden: false,
                 tabIds: [tabId],
                 updatesToGo: tab.url === "about:newtab" ? 2 : 1,
@@ -226,12 +265,21 @@ class TabbyCat {
   async #initTabListener(): Promise<void> {
     const tabs = await browser.tabs.query({});
     let groupId = 1;
+    const colors: Color[] = [];
     const tabGroups: TabGroup[] = tabs
-      .filter((tab) => tab.id !== undefined)
+      .filter(
+        (tab) =>
+          tab.id !== undefined &&
+          (!tab.url?.startsWith("about:") || tab.url == "about:newtab")
+      )
       .map((tab) => {
+        const color = this.#getColor(colors);
+        colors.push(color);
+
         return {
           groupId: groupId++,
           groupName: tab?.title ?? "New group",
+          color,
           hidden: false,
           tabIds: [tab.id!],
           updatesToGo: 0,
