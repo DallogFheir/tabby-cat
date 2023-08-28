@@ -51,8 +51,9 @@
                   width="16"
                   height="16"
                   fill="currentColor"
-                  class="tab-group-title-showhide"
                   viewBox="0 0 16 16"
+                  class="tab-group-title-icon-showhide"
+                  x-bind:class="(await browser.tabs.query({ hidden: false })).length === 1 && 'tab-group-title-icon-disabled'"
                   @click="$store.functions.showHideGroup(tabGroup.groupId, 'HIDE')"
                 >
                   <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" />
@@ -66,7 +67,7 @@
                   width="16"
                   height="16"
                   fill="currentColor"
-                  class="tab-group-title-showhide"
+                  class="tab-group-title-icon-showhide"
                   viewBox="0 0 16 16"
                   @click="$store.functions.showHideGroup(tabGroup.groupId, 'SHOW')"
                 >

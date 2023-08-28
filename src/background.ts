@@ -56,10 +56,7 @@ class TabbyCat {
 
     browser.menus.removeAll();
 
-    if (
-      tab.url !== undefined &&
-      (!tab.url?.startsWith("about:") || tab.url === "about:newtab")
-    ) {
+    if (tab.url !== undefined && !tab.url?.startsWith("about:")) {
       tabGroups.forEach((group) => {
         browser.menus.create({
           id: `group-${group.groupId}`,
@@ -157,6 +154,7 @@ class TabbyCat {
 
   async #updateTabTitle(tabId: number): Promise<void> {
     const tabGroups = await this.#getTabGroups();
+
     if (tabGroups) {
       const tabGroup = tabGroups.find((group) => group.tabIds.includes(tabId));
 
@@ -169,6 +167,45 @@ class TabbyCat {
     }
   }
 
+  async #createNewGroup(tabId: number): Promise<void> {
+    const tabGroups = await this.#getTabGroups();
+    const tab = await browser.tabs.get(tabId);
+
+    if (
+      tabGroups &&
+      tabGroups.every((tabGroup) => !tabGroup.tabIds.includes(tabId))
+    ) {
+      let freeId = 1;
+      tabGroups
+        .sort((a, b) => a.groupId - b.groupId)
+        .every((group) => {
+          if (group.groupId === freeId) {
+            freeId++;
+            return true;
+          }
+
+          return false;
+        });
+
+      const res = tabGroups.concat([
+        {
+          groupId: freeId,
+          groupName: tab?.title ?? "New group",
+          color: this.#getColor(tabGroups.map((tabGroup) => tabGroup.color)),
+          hidden: false,
+          tabIds: [tabId],
+          updatesToGo: tab.url === "about:newtab" ? 2 : 1,
+        },
+      ]);
+
+      await browser.storage.local.set({
+        tabGroups: JSON.stringify(res),
+      });
+
+      await this.#updateTabTitle(tabId);
+    }
+  }
+
   async #tabListener(
     tabOrTabId: browser.tabs.Tab | number,
     tabAction: TabAction
@@ -176,50 +213,24 @@ class TabbyCat {
     const tabGroups = await this.#getTabGroups();
 
     if (tabGroups) {
-      let res: Maybe<TabGroup[]> = null;
-
       switch (tabAction) {
         case "ADD": {
           const tab = tabOrTabId as browser.tabs.Tab;
 
-          if (tab.url?.startsWith("about:") && tab.url !== "about:newtab") {
+          if (!tab.url || tab.url.startsWith("about:")) {
             return;
           }
 
           const tabId = tab.id;
-
-          if (tabId !== undefined) {
-            let freeId = 1;
-            tabGroups
-              .sort((a, b) => a.groupId - b.groupId)
-              .every((group) => {
-                if (group.groupId === freeId) {
-                  freeId++;
-                  return true;
-                }
-
-                return false;
-              });
-
-            res = tabGroups.concat([
-              {
-                groupId: freeId,
-                groupName: tab?.title ?? "New group",
-                color: this.#getColor(
-                  tabGroups.map((tabGroup) => tabGroup.color)
-                ),
-                hidden: false,
-                tabIds: [tabId],
-                updatesToGo: tab.url === "about:newtab" ? 2 : 1,
-              },
-            ]);
+          if (tabId) {
+            this.#createNewGroup(tabId);
           }
           break;
         }
         case "REMOVE": {
           const tabId = tabOrTabId as number;
 
-          res = tabGroups
+          const res = tabGroups
             .map((tabGroup) => ({
               ...tabGroup,
               tabs: tabGroup.tabIds.filter(
@@ -228,16 +239,16 @@ class TabbyCat {
             }))
             .filter((tabGroup) => tabGroup.tabs.length > 0);
 
+          browser.storage.local.set({
+            tabGroups: JSON.stringify(res),
+          });
+
           break;
         }
         default: {
           throw new Error(`Invalid tab action: ${tabAction}.`);
         }
       }
-
-      browser.storage.local.set({
-        tabGroups: JSON.stringify(res),
-      });
     }
   }
 
@@ -269,8 +280,14 @@ class TabbyCat {
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
-      (tabId, { title }) => {
+      async (tabId) => {
+        const { status, title, url } = await browser.tabs.get(tabId);
+
+        if (status === "complete" && url && !url.startsWith("about:")) {
+          this.#createNewGroup(tabId);
+        }
         if (
+          status === "complete" &&
           title &&
           Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
         ) {
@@ -281,7 +298,7 @@ class TabbyCat {
       /* eslint-disable-next-line */
       /* @ts-ignore */
       {
-        properties: ["favIconUrl", "title"],
+        properties: ["status", "title", "url"],
       }
     );
     browser.tabs.onRemoved.addListener((tabId) =>

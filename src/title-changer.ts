@@ -1,6 +1,4 @@
-export const changeTitle: browser.runtime.onMessageVoid = (
-  msg: unknown
-): void => {
+const changeTitle: browser.runtime.onMessageVoid = (msg: unknown): void => {
   const title = msg as string;
   document.title = title;
 };

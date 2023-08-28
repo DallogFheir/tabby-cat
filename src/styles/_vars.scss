@@ -8,3 +8,7 @@ $popup-width: 20rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+@mixin icon-animation {
+  transition: transform 0.5s ease-in-out;
+}

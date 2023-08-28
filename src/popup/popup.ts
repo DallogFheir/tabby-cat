@@ -27,6 +27,28 @@ const showHideGroup = async (groupId: number, action: TabGroupAction) => {
     const tabGroup = tabGroups.find((tabGroup) => tabGroup.groupId === groupId);
 
     if (tabGroup) {
+      const tabsInGroup = await Promise.all(
+        tabGroup.tabIds.map(async (tabId) => await browser.tabs.get(tabId))
+      );
+      const activeTab = tabsInGroup.find((tab) => tab.active);
+      if (action === "HIDE" && activeTab !== undefined) {
+        const allTabs = await browser.tabs.query({});
+
+        const activeTabIdx = activeTab.index;
+        let finalIdx;
+        let addend = 1;
+        while (
+          (allTabs[(finalIdx = activeTabIdx + addend)]?.hidden ?? true) &&
+          (allTabs[(finalIdx = activeTabIdx - addend)]?.hidden ?? true)
+        ) {
+          addend++;
+        }
+
+        const nextOrPreviousTab = allTabs[finalIdx];
+        await browser.tabs.update(activeTab.id, { active: false });
+        await browser.tabs.update(nextOrPreviousTab.id, { active: true });
+      }
+
       await func(tabGroup.tabIds);
       tabGroup.hidden = action === "HIDE";
       browser.storage.local.set({
