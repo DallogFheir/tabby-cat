@@ -19,4 +19,4 @@ const rules = Object.entries(colorsToDots).map(
 
 const stylesheet = rules.join("\n\n") + "\n";
 
-fs.writeFile("extra/chrome.css", stylesheet, "utf-8");
+fs.writeFile("extra/userChrome.css", stylesheet, "utf-8");
