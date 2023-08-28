@@ -3,7 +3,10 @@ import type { Maybe } from "../models/Maybe";
 import type { TabGroup } from "../models/Tabs";
 import type { TabGroupAction } from "../models/Popup";
 
-const showHideGroup = async (groupId: number, action: TabGroupAction) => {
+const showHideGroup = async (
+  groupId: number,
+  action: TabGroupAction
+): Promise<void> => {
   let func: (tabIds: number | number[]) => Promise<void | number[]>;
   switch (action) {
     case "HIDE": {
@@ -65,7 +68,22 @@ const showHideGroup = async (groupId: number, action: TabGroupAction) => {
   }
 };
 
+const closeGroup = async (groupId: number): Promise<void> => {
+  const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
+    .tabGroups as Maybe<string>;
+
+  if (tabGroupsJson) {
+    const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
+    const tabGroup = tabGroups.find((tabGroup) => tabGroup.groupId === groupId);
+
+    if (tabGroup) {
+      await browser.tabs.remove(tabGroup.tabIds);
+    }
+  }
+};
+
 Alpine.store("functions", {
   showHideGroup,
+  closeGroup,
 });
 Alpine.start();

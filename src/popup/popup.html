@@ -52,7 +52,7 @@
                   height="16"
                   fill="currentColor"
                   viewBox="0 0 16 16"
-                  class="tab-group-title-icon-showhide"
+                  class="tab-group-title-icon"
                   x-bind:class="(await browser.tabs.query({ hidden: false })).length === 1 && 'tab-group-title-icon-disabled'"
                   @click="$store.functions.showHideGroup(tabGroup.groupId, 'HIDE')"
                 >
@@ -67,7 +67,7 @@
                   width="16"
                   height="16"
                   fill="currentColor"
-                  class="tab-group-title-icon-showhide"
+                  class="tab-group-title-icon"
                   viewBox="0 0 16 16"
                   @click="$store.functions.showHideGroup(tabGroup.groupId, 'SHOW')"
                 >
@@ -79,6 +79,19 @@
                   />
                 </svg>
               </template>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                class="tab-group-title-icon"
+                viewBox="0 0 16 16"
+                @click="$store.functions.closeGroup(tabGroup.groupId)"
+              >
+                <path
+                  d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
+                />
+              </svg>
             </div>
             <template x-if="shown">
               <ul class="tab-group-tab">

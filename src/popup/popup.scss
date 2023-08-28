@@ -78,18 +78,16 @@ ul {
     }
 
     &-icon {
+      cursor: pointer;
+      @include vars.icon-animation;
+
+      &:hover {
+        transform: scale(120%);
+      }
+
       &-disabled {
         pointer-events: none;
         filter: brightness(50%);
-      }
-
-      &-showhide {
-        cursor: pointer;
-        @include vars.icon-animation;
-
-        &:hover {
-          transform: scale(120%);
-        }
       }
     }
   }
