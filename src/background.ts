@@ -1,7 +1,6 @@
-import type { Favicon, FaviconData } from "./models/Favicon";
 import type { Maybe } from "./models/Maybe";
 import {
-  colors,
+  colorsToDots,
   type Color,
   type TabAction,
   type TabGroup,
@@ -35,6 +34,7 @@ class TabbyCat {
   }
 
   #getColor(currentColors: Color[]): Color {
+    const colors = Object.keys(colorsToDots) as (keyof typeof colorsToDots)[];
     let colorsToPick: Readonly<Color[]> = colors.filter(
       (color) => !currentColors.includes(color)
     );
@@ -129,42 +129,7 @@ class TabbyCat {
     browser.menus.onClicked.addListener(this.#handleMenuClick.bind(this));
   }
 
-  async #changeFavicon(tabId: number, iconUrl: Maybe<string>): Promise<void> {
-    const tabGroups = await this.#getTabGroups();
-
-    if (tabGroups) {
-      const tabGroup = tabGroups.find((tabGroup) =>
-        tabGroup.tabIds.some((tabInGroupId) => tabInGroupId === tabId)
-      );
-
-      if (tabGroup) {
-        let favicon: Maybe<Favicon> = null;
-
-        if (
-          iconUrl?.includes("x-tabby-cat=true") ||
-          iconUrl?.startsWith("chrome:")
-        ) {
-          return;
-        }
-
-        if (iconUrl) {
-          const resp = await fetch(iconUrl);
-          if (resp.headers.get("content-type") === "image/svg+xml") {
-            favicon = await resp.text();
-          } else {
-            favicon = await resp.blob();
-          }
-        }
-
-        browser.tabs.sendMessage(tabId, {
-          favicon,
-          color: tabGroup.color,
-        } satisfies FaviconData);
-      }
-    }
-  }
-
-  async #updateGroupTitle(tabId: number, title: string): Promise<void> {
+  async #updateGroupName(tabId: number, title: string): Promise<void> {
     const tabGroups = await this.#getTabGroups();
 
     if (tabGroups) {
@@ -187,6 +152,20 @@ class TabbyCat {
       browser.storage.local.set({
         tabGroups: JSON.stringify(tabGroups),
       });
+    }
+  }
+
+  async #updateTabTitle(tabId: number): Promise<void> {
+    const tabGroups = await this.#getTabGroups();
+    if (tabGroups) {
+      const tabGroup = tabGroups.find((group) => group.tabIds.includes(tabId));
+
+      if (tabGroup) {
+        const tab = await browser.tabs.get(tabId);
+        const dot = colorsToDots[tabGroup.color];
+        const title = `${dot} ${tab.title}`;
+        browser.tabs.sendMessage(tabId, title);
+      }
     }
   }
 
@@ -290,12 +269,13 @@ class TabbyCat {
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
-      (tabId, { favIconUrl, title }) => {
-        if (favIconUrl !== undefined) {
-          this.#changeFavicon(tabId, favIconUrl);
-        }
-        if (title) {
-          this.#updateGroupTitle(tabId, title);
+      (tabId, { title }) => {
+        if (
+          title &&
+          Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
+        ) {
+          this.#updateGroupName(tabId, title);
+          this.#updateTabTitle(tabId);
         }
       },
       /* eslint-disable-next-line */

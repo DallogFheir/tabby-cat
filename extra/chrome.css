@@ -1,0 +1,44 @@
+tab.tabbrowser-tab[label^="🔴"] vbox.tab-background {
+  background-color: #e8122480 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🟠"] vbox.tab-background {
+  background-color: #f7630c80 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🟡"] vbox.tab-background {
+  background-color: #fff10080 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🟢"] vbox.tab-background {
+  background-color: #16c60c80 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🔵"] vbox.tab-background {
+  background-color: #0078d780 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🟣"] vbox.tab-background {
+  background-color: #886ce480 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="🟤"] vbox.tab-background {
+  background-color: #8e562e80 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="⚫"] vbox.tab-background {
+  background-color: #38383880 !important;
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[label^="⚪"] vbox.tab-background {
+  background-color: #f2f2f280 !important;
+  background-image: none !important;
+}

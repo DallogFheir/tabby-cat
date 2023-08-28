@@ -1,27 +1,16 @@
-export const colors = [
-  "#FF8C6A",
-  "#55A868",
-  "#4287B0",
-  "#E6B450",
-  "#A8708C",
-  "#3969AC",
-  "#7D984D",
-  "#7B539F",
-  "#E5642A",
-  "#2E9E75",
-  "#00A7AF",
-  "#C63F62",
-  "#FBB040",
-  "#2976BB",
-  "#C94A1F",
-  "#8A5DA3",
-  "#00A553",
-  "#D5336C",
-  "#006BAC",
-  "#FFA300",
-] as const;
+export const colorsToDots = {
+  "#e81224": "🔴",
+  "#f7630c": "🟠",
+  "#fff100": "🟡",
+  "#16c60c": "🟢",
+  "#0078d7": "🔵",
+  "#886ce4": "🟣",
+  "#8e562e": "🟤",
+  "#383838": "⚫",
+  "#f2f2f2": "⚪",
+} as const;
 
-export type Color = (typeof colors)[number];
+export type Color = keyof typeof colorsToDots;
 
 export interface TabGroup {
   groupId: number;
