@@ -27,7 +27,7 @@ The extension needs the following permissions:
 - **tabHide** - to hide tabs
 - **tabs** - to access tab data
 
-Moreover, Content Security Policy is set to `script-src 'self' 'unsafe-eval';` for Alpine.js to work in the extension popup.
+Moreover, Content Security Policy is set to `script-src 'self' 'unsafe-eval';` for Alpine.js to work in the extension popup and settings page.
 
 ## Acknowledgements
 

@@ -382,7 +382,10 @@ class TabbyCat {
 
   async #initOptions(): Promise<void> {
     await browser.storage.local.set({
-      options: JSON.stringify({ colorIndicator: "begin" } satisfies Options),
+      options: JSON.stringify({
+        colorIndicator: "begin",
+        removeEmptyGroups: true,
+      } satisfies Options),
     });
 
     /* eslint-disable-next-line */

@@ -1,5 +1,8 @@
+export type ColorIndicatorOption = "off" | "begin" | "end";
+
 export interface Options {
-  colorIndicator: "off" | "begin" | "end";
+  colorIndicator: ColorIndicatorOption;
+  removeEmptyGroups: boolean;
 }
 
 export interface OptionsChange {

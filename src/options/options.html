@@ -8,12 +8,7 @@
     <script type="module" src="options.ts"></script>
     <title>TabbyCat options</title>
   </head>
-  <body
-    x-data="{ options: {} }"
-    x-init="options = JSON.parse((await browser.storage.local.get('options'))?.options ?? `{
-      'colorIndicator': 'begin'
-    }`)"
-  >
+  <body x-data="options">
     <header>
       <img src="../icons/icon-96.png" />
       <h1>TabbyCat options</h1>
@@ -29,9 +24,7 @@
                 name="radio-color-indicator"
                 value="off"
                 x-bind:checked="options.colorIndicator === 'off'"
-                @change="browser.storage.local.set({
-                    options: JSON.stringify({...options, colorIndicator: 'off'})
-                })"
+                @change="setOptions('colorIndicator', 'off')"
               />turned off</label
             >
             <label>
@@ -40,9 +33,7 @@
                 name="radio-color-indicator"
                 value="begin"
                 x-bind:checked="options.colorIndicator === 'begin'"
-                @change="browser.storage.local.set({
-                    options: JSON.stringify({...options, colorIndicator: 'begin'})
-                })"
+                @change="setOptions('colorIndicator', 'begin')"
               />at the beginning of the tab title
             </label>
             <label>
@@ -51,9 +42,7 @@
                 name="radio-color-indicator"
                 value="end"
                 x-bind:checked="options.colorIndicator === 'end'"
-                @change="browser.storage.local.set({
-                    options: JSON.stringify({...options, colorIndicator: 'end'})
-                })"
+                @change="setOptions('colorIndicator', 'end')"
               /><span
                 ><p class="options-label">at the end of the tab title</p>
                 <p class="options-label-subtext">
@@ -72,6 +61,15 @@
               </span>
             </label>
           </form>
+        </li>
+        <li>
+          <label
+            ><input
+              type="checkbox"
+              @change="setOptions('removeEmptyGroups', $event.currentTarget.checked)"
+            />
+            automatically remove empty groups</label
+          >
         </li>
       </ul>
     </main>
