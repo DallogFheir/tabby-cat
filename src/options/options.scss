@@ -1,0 +1,27 @@
+@use "../styles/vars";
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Ubuntu", sans-serif;
+  color: vars.$color-text;
+  background-color: vars.$color-background;
+  padding: 1rem;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+}
+
+main {
+  margin: 0 auto;
+  max-width: 720px;
+}

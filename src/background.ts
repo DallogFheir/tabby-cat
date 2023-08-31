@@ -1,4 +1,5 @@
 import type { Maybe } from "./models/Maybe";
+import type { Options } from "./models/Options";
 import {
   colorsToDots,
   type Color,
@@ -18,6 +19,7 @@ class TabbyCat {
     TabbyCat.#isInternallyConstructing = false;
     this.#initContextMenuListener();
     this.#initTabListener();
+    this.#initSettings();
   }
 
   static initialize(): void {
@@ -336,6 +338,12 @@ class TabbyCat {
     browser.tabs.onRemoved.addListener((tabId) =>
       this.#tabListener(tabId, "REMOVE")
     );
+  }
+
+  async #initSettings(): Promise<void> {
+    await browser.storage.local.set({
+      colorIndicator: "begin",
+    } satisfies Options);
   }
 }
 

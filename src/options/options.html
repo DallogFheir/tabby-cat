@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="../icons/icon-16.png" />
+    <link rel="stylesheet" href="options.scss" />
+    <script type="module" src="options.ts"></script>
+    <title>TabbyCat options</title>
+  </head>
+  <body
+    x-data="{ options: {} }"
+    x-init="options = (await browser.storage.local.get('options')).options"
+  >
+    <header>
+      <img src="../icons/icon-96.png" />
+      <h1>TabbyCat options</h1>
+    </header>
+    <main>
+      <ul>
+        <li>
+          color indicators
+          <form>
+            <label
+              ><input
+                type="radio"
+                name="radio-color-indicator"
+                value="off"
+                x-bind:checked="options.colorIndicator === 'off'"
+                @change="browser.storage.local.set({
+                    options: {...options, colorIndicator: 'off'}
+                })"
+              />turned off</label
+            >
+            <label>
+              <input
+                type="radio"
+                name="radio-color-indicator"
+                value="begin"
+                x-bind:checked="options.colorIndicator === 'begin'"
+                @change="browser.storage.local.set({
+                    options: {...options, colorIndicator: 'begin'}
+                })"
+              />
+              at the beginning of the tab title
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="radio-color-indicator"
+                value="end"
+                x-bind:checked="options.colorIndicator === 'end'"
+                @change="browser.storage.local.set({
+                    options: {...options, colorIndicator: 'end'}
+                })"
+              />
+              at the end of the tab title
+            </label>
+          </form>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

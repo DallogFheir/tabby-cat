@@ -27,6 +27,10 @@
   "background": {
     "scripts": ["background.ts"]
   },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
   "permissions": ["menus", "storage", "tabHide", "tabs"],
   "content_security_policy": "script-src 'self' 'unsafe-eval';"
 }
