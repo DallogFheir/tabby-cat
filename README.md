@@ -18,6 +18,17 @@ Unfortunately, WebExtensions API does not support changing the color of individu
 
 5. Restart Firefox.
 
+## Permissions
+
+The extension needs the following permissions:
+
+- **menus** - to access the context menu on tabs
+- **storage** - to store tab groups and settings
+- **tabHide** - to hide tabs
+- **tabs** - to access tab data
+
+Moreover, Content Security Policy is set to `script-src 'self' 'unsafe-eval';` for Alpine.js to work in the extension popup.
+
 ## Acknowledgements
 
 Cat icons created by AomAm - [Flaticon](https://www.flaticon.com).

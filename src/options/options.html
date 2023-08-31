@@ -21,7 +21,7 @@
     <main>
       <ul class="options">
         <li>
-          color indicators
+          color indicators 🔴🟠🟡🟢🔵🟣🟤⚫⚪
           <form>
             <label
               ><input
@@ -54,7 +54,22 @@
                 @change="browser.storage.local.set({
                     options: JSON.stringify({...options, colorIndicator: 'end'})
                 })"
-              />at the end of the tab title
+              /><span
+                ><p class="options-label">at the end of the tab title</p>
+                <p class="options-label-subtext">
+                  this can be used together with a custom browser stylesheet
+                </p>
+                <p class="options-label-subtext">
+                  see
+                  <a
+                    class="options-label-link"
+                    href="https://github.com/DallogFheir/tabby-cat#tab-colors"
+                    referrerpolicy="no-referrer"
+                    >here</a
+                  >
+                  for the instructions
+                </p>
+              </span>
             </label>
           </form>
         </li>

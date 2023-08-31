@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../styles/vars";
 @import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap");
 
@@ -43,6 +44,24 @@ main {
 
       & input {
         margin-right: 0.5em;
+      }
+    }
+  }
+
+  &-label {
+    display: inline;
+
+    &-subtext {
+      margin-left: 2em;
+      color: color.adjust(vars.$color-text, $lightness: -50%);
+    }
+
+    &-link {
+      text-decoration: none;
+      color: color.adjust(vars.$color-text, $lightness: -30%);
+
+      &:hover {
+        color: color.adjust(vars.$color-text, $lightness: -20%);
       }
     }
   }
