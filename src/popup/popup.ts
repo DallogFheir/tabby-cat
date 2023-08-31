@@ -13,7 +13,6 @@ Alpine.data(
       async init() {
         const tabGroups = (await browser.storage.local.get("tabGroups"))
           .tabGroups;
-
         if (tabGroups !== undefined) {
           this.tabGroups = JSON.parse(tabGroups as string) as TabGroup[];
         }

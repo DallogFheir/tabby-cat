@@ -63,13 +63,14 @@
           </form>
         </li>
         <li>
-          <label
-            ><input
+          <label>
+            automatically remove empty groups
+            <input
+              class="options-checkbox"
               type="checkbox"
+              x-bind:checked="options.removeEmptyGroups"
               @change="setOptions('removeEmptyGroups', $event.currentTarget.checked)"
-            />
-            automatically remove empty groups</label
-          >
+          /></label>
         </li>
       </ul>
     </main>

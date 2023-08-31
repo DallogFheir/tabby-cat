@@ -298,14 +298,21 @@ class TabbyCat {
         case "REMOVE": {
           const tabId = tabOrTabId as number;
 
-          const res = tabGroups
-            .map((tabGroup) => ({
-              ...tabGroup,
-              tabs: tabGroup.tabIds.filter(
-                (tabInGroupId) => tabInGroupId !== tabId
-              ),
-            }))
-            .filter((tabGroup) => tabGroup.tabs.length > 0);
+          const removeEmptyGroups =
+            (await this.#getOptions())?.removeEmptyGroups ?? true;
+
+          let res = tabGroups.map(
+            (tabGroup) =>
+              ({
+                ...tabGroup,
+                tabIds: tabGroup.tabIds.filter(
+                  (tabInGroupId) => tabInGroupId !== tabId
+                ),
+              }) satisfies TabGroup
+          );
+          if (removeEmptyGroups) {
+            res = res.filter((tabGroup) => tabGroup.tabIds.length > 0);
+          }
 
           await this.#saveTabGroups(res);
 
