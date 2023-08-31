@@ -14,7 +14,7 @@ const colorsToDots = {
 
 const rules = Object.entries(colorsToDots).map(
   ([color, dot]) =>
-    `tab.tabbrowser-tab[label^="${dot}"] vbox.tab-background {\n  background-color: ${color}80 !important;\n  background-image: none !important;\n}`
+    `tab.tabbrowser-tab[label$="${dot}"] vbox.tab-background {\n  background-color: ${color}80 !important;\n  background-image: none !important;\n}`
 );
 
 const stylesheet = rules.join("\n\n") + "\n";

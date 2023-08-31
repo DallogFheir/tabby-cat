@@ -10,14 +10,16 @@
   </head>
   <body
     x-data="{ options: {} }"
-    x-init="options = (await browser.storage.local.get('options')).options"
+    x-init="options = JSON.parse((await browser.storage.local.get('options'))?.options ?? `{
+      'colorIndicator': 'begin'
+    }`)"
   >
     <header>
       <img src="../icons/icon-96.png" />
       <h1>TabbyCat options</h1>
     </header>
     <main>
-      <ul>
+      <ul class="options">
         <li>
           color indicators
           <form>
@@ -28,7 +30,7 @@
                 value="off"
                 x-bind:checked="options.colorIndicator === 'off'"
                 @change="browser.storage.local.set({
-                    options: {...options, colorIndicator: 'off'}
+                    options: JSON.stringify({...options, colorIndicator: 'off'})
                 })"
               />turned off</label
             >
@@ -39,10 +41,9 @@
                 value="begin"
                 x-bind:checked="options.colorIndicator === 'begin'"
                 @change="browser.storage.local.set({
-                    options: {...options, colorIndicator: 'begin'}
+                    options: JSON.stringify({...options, colorIndicator: 'begin'})
                 })"
-              />
-              at the beginning of the tab title
+              />at the beginning of the tab title
             </label>
             <label>
               <input
@@ -51,10 +52,9 @@
                 value="end"
                 x-bind:checked="options.colorIndicator === 'end'"
                 @change="browser.storage.local.set({
-                    options: {...options, colorIndicator: 'end'}
+                    options: JSON.stringify({...options, colorIndicator: 'end'})
                 })"
-              />
-              at the end of the tab title
+              />at the end of the tab title
             </label>
           </form>
         </li>

@@ -1,5 +1,5 @@
 import type { Maybe } from "./models/Maybe";
-import type { Options } from "./models/Options";
+import type { Options, OptionsChange } from "./models/Options";
 import {
   colorsToDots,
   type Color,
@@ -19,7 +19,7 @@ class TabbyCat {
     TabbyCat.#isInternallyConstructing = false;
     this.#initContextMenuListener();
     this.#initTabListener();
-    this.#initSettings();
+    this.#initOptions();
   }
 
   static initialize(): void {
@@ -33,6 +33,12 @@ class TabbyCat {
     const tabGroups = (await browser.storage.local.get("tabGroups")).tabGroups;
 
     return tabGroups ? JSON.parse(tabGroups as string) : null;
+  }
+
+  async #getOptions(): Promise<Maybe<Options>> {
+    const options = (await browser.storage.local.get("options")).options;
+
+    return options ? JSON.parse(options as string) : null;
   }
 
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
@@ -155,20 +161,45 @@ class TabbyCat {
   }
 
   async #updateTabTitle(tabId: number): Promise<void> {
+    const options = await this.#getOptions();
     const tabGroups = await this.#getTabGroups();
 
-    if (tabGroups) {
+    if (tabGroups && options) {
       const tabGroup = tabGroups.find((group) => group.tabIds.includes(tabId));
       const tab = await browser.tabs.get(tabId);
       const title = tab.title;
 
-      if (
-        tabGroup &&
-        title &&
-        Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
-      ) {
+      if (tabGroup && title) {
         const dot = colorsToDots[tabGroup.color];
-        const newTitle = `${dot} ${title}`;
+        const startsWithDot = Object.values(colorsToDots).some((dot) =>
+          title.startsWith(dot)
+        );
+        const endsWithDot = Object.values(colorsToDots).some((dot) =>
+          title.endsWith(dot)
+        );
+
+        const titleWithoutDot = startsWithDot
+          ? title.slice(2)
+          : endsWithDot
+          ? title.slice(0, -2)
+          : title;
+
+        let newTitle: string;
+        switch (options.colorIndicator) {
+          case "off": {
+            newTitle = titleWithoutDot;
+            break;
+          }
+          case "begin": {
+            newTitle = `${dot} ${titleWithoutDot}`;
+            break;
+          }
+          case "end": {
+            newTitle = `${titleWithoutDot} ${dot}`;
+            break;
+          }
+        }
+
         browser.tabs.sendMessage(tabId, newTitle);
       }
     }
@@ -340,10 +371,28 @@ class TabbyCat {
     );
   }
 
-  async #initSettings(): Promise<void> {
+  async #handleOptionsUpdate(changes: OptionsChange): Promise<void> {
+    const optionsChange = changes.options;
+
+    if (optionsChange !== undefined) {
+      const tabs = await browser.tabs.query({});
+      const updateTitlesPromises = tabs
+        .filter((tab) => tab.id !== undefined)
+        .map(({ id }) => this.#updateTabTitle(id as number));
+      await Promise.all(updateTitlesPromises);
+    }
+  }
+
+  async #initOptions(): Promise<void> {
     await browser.storage.local.set({
-      colorIndicator: "begin",
-    } satisfies Options);
+      options: JSON.stringify({ colorIndicator: "begin" } satisfies Options),
+    });
+
+    /* eslint-disable-next-line */
+    /* @ts-ignore */
+    browser.storage.local.onChanged.addListener(
+      this.#handleOptionsUpdate.bind(this)
+    );
   }
 }
 
