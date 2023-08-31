@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "parcel build ./src/manifest.json && node generateChrome.js",
-    "watch": "parcel watch ./src/manifest.json",
+    "watch": "parcel watch ./src/manifest.json --no-hmr",
     "debug": "cd dist && web-ext run --arg=\"--new-tab=about:debugging#/runtime/this-firefox\""
   },
   "author": "DallogFheir",

@@ -33,6 +33,12 @@ class TabbyCat {
     return tabGroups ? JSON.parse(tabGroups as string) : null;
   }
 
+  async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
+    await browser.storage.local.set({
+      tabGroups: JSON.stringify(tabGroups),
+    });
+  }
+
   #getColor(currentColors: Color[]): Color {
     const colors = Object.keys(colorsToDots) as (keyof typeof colorsToDots)[];
     let colorsToPick: Readonly<Color[]> = colors.filter(
@@ -115,9 +121,7 @@ class TabbyCat {
 
       newGroup.tabIds.push(tabId);
 
-      browser.storage.local.set({
-        tabGroups: JSON.stringify(tabGroups),
-      });
+      await this.#saveTabGroups(tabGroups);
     }
   }
 
@@ -145,10 +149,6 @@ class TabbyCat {
           }
         }
       }
-
-      browser.storage.local.set({
-        tabGroups: JSON.stringify(tabGroups),
-      });
     }
   }
 
@@ -157,12 +157,17 @@ class TabbyCat {
 
     if (tabGroups) {
       const tabGroup = tabGroups.find((group) => group.tabIds.includes(tabId));
+      const tab = await browser.tabs.get(tabId);
+      const title = tab.title;
 
-      if (tabGroup) {
-        const tab = await browser.tabs.get(tabId);
+      if (
+        tabGroup &&
+        title &&
+        Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
+      ) {
         const dot = colorsToDots[tabGroup.color];
-        const title = `${dot} ${tab.title}`;
-        browser.tabs.sendMessage(tabId, title);
+        const newTitle = `${dot} ${title}`;
+        browser.tabs.sendMessage(tabId, newTitle);
       }
     }
   }
@@ -198,11 +203,25 @@ class TabbyCat {
         },
       ]);
 
-      await browser.storage.local.set({
-        tabGroups: JSON.stringify(res),
-      });
+      await this.#saveTabGroups(res);
 
       await this.#updateTabTitle(tabId);
+    }
+  }
+
+  async #addToGroup(tabId: number, openerTabId: number): Promise<void> {
+    const tabGroups = await this.#getTabGroups();
+    const openerTabGroup = tabGroups?.find((tabGroup) =>
+      tabGroup.tabIds.includes(openerTabId)
+    );
+
+    if (
+      tabGroups &&
+      tabGroups.every((tabGroup) => !tabGroup.tabIds.includes(tabId)) &&
+      openerTabGroup
+    ) {
+      openerTabGroup.tabIds.push(tabId);
+      await this.#saveTabGroups(tabGroups);
     }
   }
 
@@ -223,7 +242,11 @@ class TabbyCat {
 
           const tabId = tab.id;
           if (tabId) {
-            this.#createNewGroup(tabId);
+            if (tab.openerTabId === undefined) {
+              await this.#createNewGroup(tabId);
+            } else {
+              await this.#addToGroup(tabId, tab.openerTabId);
+            }
           }
           break;
         }
@@ -239,9 +262,7 @@ class TabbyCat {
             }))
             .filter((tabGroup) => tabGroup.tabs.length > 0);
 
-          browser.storage.local.set({
-            tabGroups: JSON.stringify(res),
-          });
+          await this.#saveTabGroups(res);
 
           break;
         }
@@ -276,7 +297,7 @@ class TabbyCat {
         };
       });
 
-    await browser.storage.local.set({ tabGroups: JSON.stringify(tabGroups) });
+    await this.#saveTabGroups(tabGroups);
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
@@ -284,15 +305,26 @@ class TabbyCat {
         const { status, title, url } = await browser.tabs.get(tabId);
 
         if (status === "complete" && url && !url.startsWith("about:")) {
-          this.#createNewGroup(tabId);
+          const tab = await browser.tabs.get(tabId);
+          const tabGroups = await this.#getTabGroups();
+
+          if (
+            tabGroups?.every((tabGroup) => !tabGroup.tabIds.includes(tabId))
+          ) {
+            if (tab.openerTabId === undefined) {
+              await this.#createNewGroup(tabId);
+            } else {
+              await this.#addToGroup(tabId, tab.openerTabId);
+            }
+          }
         }
         if (
           status === "complete" &&
           title &&
           Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
         ) {
-          this.#updateGroupName(tabId, title);
-          this.#updateTabTitle(tabId);
+          await this.#updateGroupName(tabId, title);
+          await this.#updateTabTitle(tabId);
         }
       },
       /* eslint-disable-next-line */

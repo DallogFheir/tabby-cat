@@ -78,6 +78,12 @@ const closeGroup = async (groupId: number): Promise<void> => {
 
     if (tabGroup) {
       await browser.tabs.remove(tabGroup.tabIds);
+      const newTabGroups = tabGroups.filter(
+        (tabGroup) => tabGroup !== tabGroup
+      );
+      await browser.storage.local.set({
+        tabGroups: JSON.stringify(newTabGroups),
+      });
     }
   }
 };
