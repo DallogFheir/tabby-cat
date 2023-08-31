@@ -78,12 +78,20 @@ const closeGroup = async (groupId: number): Promise<void> => {
 
     if (tabGroup) {
       await browser.tabs.remove(tabGroup.tabIds);
+
       const newTabGroups = tabGroups.filter(
-        (tabGroup) => tabGroup !== tabGroup
+        (oldTabGroup) => oldTabGroup !== tabGroup
       );
       await browser.storage.local.set({
         tabGroups: JSON.stringify(newTabGroups),
       });
+
+      const updateEvent = new CustomEvent("x-tabbycat-update", {
+        detail: {
+          tabGroups: newTabGroups,
+        },
+      });
+      document.body.dispatchEvent(updateEvent);
     }
   }
 };
