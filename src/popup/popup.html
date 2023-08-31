@@ -96,9 +96,7 @@
             </div>
             <ul class="tab-group-tab" x-show="shown" x-transition>
               <template x-for="tabId in tabGroup.tabIds">
-                <li
-                  x-text="(await browser.tabs.get(tabId)).title.match(/(🔴|🟠|🟡|🟢|🔵|🟣|🟤|⚫|⚪)(.*)/)[2]"
-                ></li>
+                <li x-text="await $store.functions.getTabTitle(tabId)"></li>
               </template>
             </ul>
           </li>

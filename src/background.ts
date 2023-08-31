@@ -205,6 +205,14 @@ class TabbyCat {
     }
   }
 
+  async #updateAllTabsTitles(): Promise<void> {
+    const tabs = await browser.tabs.query({});
+    const updateTitlesPromises = tabs
+      .filter((tab) => tab.id !== undefined)
+      .map(({ id }) => this.#updateTabTitle(id as number));
+    await Promise.all(updateTitlesPromises);
+  }
+
   async #createNewGroup(tabId: number): Promise<void> {
     const tabGroups = await this.#getTabGroups();
     const tab = await browser.tabs.get(tabId);
@@ -311,11 +319,7 @@ class TabbyCat {
     let groupId = 1;
     const colors: Color[] = [];
     const tabGroups: TabGroup[] = tabs
-      .filter(
-        (tab) =>
-          tab.id !== undefined &&
-          (!tab.url?.startsWith("about:") || tab.url == "about:newtab")
-      )
+      .filter((tab) => tab.id !== undefined && !tab.url?.startsWith("about:"))
       .map((tab) => {
         const color = this.#getColor(colors);
         colors.push(color);
@@ -331,6 +335,7 @@ class TabbyCat {
       });
 
     await this.#saveTabGroups(tabGroups);
+    await this.#updateAllTabsTitles();
 
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
@@ -371,18 +376,6 @@ class TabbyCat {
     );
   }
 
-  async #handleOptionsUpdate(changes: OptionsChange): Promise<void> {
-    const optionsChange = changes.options;
-
-    if (optionsChange !== undefined) {
-      const tabs = await browser.tabs.query({});
-      const updateTitlesPromises = tabs
-        .filter((tab) => tab.id !== undefined)
-        .map(({ id }) => this.#updateTabTitle(id as number));
-      await Promise.all(updateTitlesPromises);
-    }
-  }
-
   async #initOptions(): Promise<void> {
     await browser.storage.local.set({
       options: JSON.stringify({ colorIndicator: "begin" } satisfies Options),
@@ -390,9 +383,13 @@ class TabbyCat {
 
     /* eslint-disable-next-line */
     /* @ts-ignore */
-    browser.storage.local.onChanged.addListener(
-      this.#handleOptionsUpdate.bind(this)
-    );
+    browser.storage.local.onChanged.addListener((changes: OptionsChange) => {
+      const options = changes.options;
+
+      if (options !== undefined) {
+        this.#updateAllTabsTitles();
+      }
+    });
   }
 }
 

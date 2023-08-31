@@ -96,8 +96,18 @@ const closeGroup = async (groupId: number): Promise<void> => {
   }
 };
 
+const getTabTitle = async (tabId: number): Promise<string> => {
+  const tab = await browser.tabs.get(tabId);
+  const titleWithoutDotMatch = tab.title?.match(
+    /(?:(?:🔴|🟠|🟡|🟢|🔵|🟣|🟤|⚫|⚪) )?(.*)(?: (?:🔴|🟠|🟡|🟢|🔵|🟣|🟤|⚫|⚪))?/
+  );
+
+  return titleWithoutDotMatch?.[1] ?? tab.title ?? "New tab";
+};
+
 Alpine.store("functions", {
   showHideGroup,
   closeGroup,
+  getTabTitle,
 });
 Alpine.start();
