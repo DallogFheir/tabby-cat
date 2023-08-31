@@ -41,6 +41,10 @@ class TabbyCat {
     return options ? JSON.parse(options as string) : null;
   }
 
+  #isSpecialTab(url: Maybe<string>): boolean {
+    return !url || url.startsWith("about:") || url.startsWith("moz-extension:");
+  }
+
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
     await browser.storage.local.set({
       tabGroups: JSON.stringify(tabGroups),
@@ -70,7 +74,7 @@ class TabbyCat {
 
     browser.menus.removeAll();
 
-    if (tab.url !== undefined && !tab.url?.startsWith("about:")) {
+    if (!this.#isSpecialTab(tab.url)) {
       tabGroups.forEach((group) => {
         browser.menus.create({
           id: `group-${group.groupId}`,
@@ -277,7 +281,7 @@ class TabbyCat {
         case "ADD": {
           const tab = tabOrTabId as browser.tabs.Tab;
 
-          if (!tab.url || tab.url.startsWith("about:")) {
+          if (this.#isSpecialTab(tab.url)) {
             return;
           }
 
@@ -319,7 +323,7 @@ class TabbyCat {
     let groupId = 1;
     const colors: Color[] = [];
     const tabGroups: TabGroup[] = tabs
-      .filter((tab) => tab.id !== undefined && !tab.url?.startsWith("about:"))
+      .filter((tab) => tab.id !== undefined && !this.#isSpecialTab(tab.url))
       .map((tab) => {
         const color = this.#getColor(colors);
         colors.push(color);
@@ -342,7 +346,7 @@ class TabbyCat {
       async (tabId) => {
         const { status, title, url } = await browser.tabs.get(tabId);
 
-        if (status === "complete" && url && !url.startsWith("about:")) {
+        if (status === "complete" && !this.#isSpecialTab(url)) {
           const tab = await browser.tabs.get(tabId);
           const tabGroups = await this.#getTabGroups();
 

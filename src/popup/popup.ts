@@ -98,11 +98,18 @@ const closeGroup = async (groupId: number): Promise<void> => {
 
 const getTabTitle = async (tabId: number): Promise<string> => {
   const tab = await browser.tabs.get(tabId);
-  const titleWithoutDotMatch = tab.title?.match(
-    /(?:(?:🔴|🟠|🟡|🟢|🔵|🟣|🟤|⚫|⚪) )?(.*)(?: (?:🔴|🟠|🟡|🟢|🔵|🟣|🟤|⚫|⚪))?/
-  );
+  const title = tab.title;
 
-  return titleWithoutDotMatch?.[1] ?? tab.title ?? "New tab";
+  if (title === undefined) {
+    return "New tab";
+  }
+
+  const dots = ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "🟤", "⚫", "⚪"];
+  return dots.some((dot) => title.startsWith(dot))
+    ? title.slice(2)
+    : dots.some((dot) => title.endsWith(dot))
+    ? title.slice(0, -2)
+    : title;
 };
 
 Alpine.store("functions", {
