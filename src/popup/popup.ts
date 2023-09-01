@@ -1,8 +1,9 @@
 import Alpine from "alpinejs";
 import type { Maybe } from "../models/Maybe";
 import type { TabGroup } from "../models/Tabs";
-import type { TabGroupAction } from "../models/Popup";
+import type { TabGroupAction, ActionIcon } from "../models/Popup";
 import type { AlpineTabGroupsData } from "../models/Alpine";
+import type { Options } from "../models/Options";
 
 Alpine.data(
   "tabGroups",
@@ -90,6 +91,43 @@ Alpine.data(
       async closeGroup(groupId: number): Promise<void> {
         const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
           .tabGroups as Maybe<string>;
+        const optionsJson = (await browser.storage.local.get("options"))
+          .options as Maybe<string>;
+
+        if (tabGroupsJson && optionsJson) {
+          const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
+          const options = JSON.parse(optionsJson) as Options;
+
+          if (options.removeEmptyGroups) {
+            await this.removeGroup(groupId);
+          } else {
+            const tabGroup = tabGroups.find(
+              (tabGroup) => tabGroup.groupId === groupId
+            );
+
+            if (tabGroup) {
+              await browser.tabs.remove(tabGroup.tabIds);
+
+              tabGroup.tabIds = [];
+
+              await browser.storage.local.set({
+                tabGroups: JSON.stringify(tabGroups),
+              });
+
+              const updateEvent = new CustomEvent("x-tabbycat-update", {
+                detail: {
+                  tabGroups: tabGroups,
+                },
+              });
+              document.body.dispatchEvent(updateEvent);
+            }
+          }
+        }
+      },
+
+      async removeGroup(groupId: number): Promise<void> {
+        const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
+          .tabGroups as Maybe<string>;
 
         if (tabGroupsJson) {
           const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
@@ -131,6 +169,26 @@ Alpine.data(
           : dots.some((dot) => title.endsWith(dot))
           ? title.slice(0, -2)
           : title;
+      },
+
+      async shouldIconBeDisabled(
+        icon: ActionIcon,
+        tabCount: number
+      ): Promise<boolean> {
+        if (tabCount === 0) {
+          return true;
+        }
+
+        if (icon === "HIDE") {
+          const visibleTabsCount = (await browser.tabs.query({ hidden: false }))
+            .length;
+
+          if (visibleTabsCount === 1) {
+            return true;
+          }
+        }
+
+        return false;
       },
     }) satisfies AlpineTabGroupsData
 );

@@ -1,5 +1,5 @@
 import type { Options } from "./Options";
-import type { TabGroupAction } from "./Popup";
+import type { ActionIcon, TabGroupAction } from "./Popup";
 import type { TabGroup } from "./Tabs";
 
 export interface AlpineData {
@@ -18,5 +18,7 @@ export interface AlpineTabGroupsData extends AlpineData {
   tabGroups: TabGroup[];
   showHideGroup(groupId: number, action: TabGroupAction): Promise<void>;
   closeGroup(groupId: number): Promise<void>;
+  removeGroup(groupId: number): Promise<void>;
   getTabTitle(tabId: number): Promise<string>;
+  shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
 }
