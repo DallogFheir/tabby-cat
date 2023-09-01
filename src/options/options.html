@@ -45,10 +45,10 @@
                 @change="setOptions('colorIndicator', 'end')"
               /><span
                 ><p class="options-label">at the end of the tab title</p>
-                <p class="options-label-subtext">
+                <p class="options-label-subtext options-label-subradio">
                   this can be used together with a custom browser stylesheet
                 </p>
-                <p class="options-label-subtext">
+                <p class="options-label-subtext options-label-subradio">
                   see
                   <a
                     class="options-label-link"
@@ -63,14 +63,29 @@
           </form>
         </li>
         <li>
-          <label>
-            automatically remove empty groups
+          <label class="options-label">
             <input
               class="options-checkbox"
               type="checkbox"
               x-bind:checked="options.removeEmptyGroups"
               @change="setOptions('removeEmptyGroups', $event.currentTarget.checked)"
-          /></label>
+            />
+            automatically remove empty groups
+          </label>
+        </li>
+        <li>
+          <label class="options-label">
+            <input
+              class="options-checkbox"
+              type="checkbox"
+              x-bind:checked="options.saveSessions"
+              @change="setOptions('saveSessions', $event.currentTarget.checked)"
+            />
+            save sessions
+            <p class="options-label-subtext options-label-subcheckbox">
+              if not checked, all groups will be removed when closing Firefox
+            </p>
+          </label>
         </li>
       </ul>
     </main>

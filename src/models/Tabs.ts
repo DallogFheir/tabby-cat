@@ -12,12 +12,17 @@ export const colorsToDots = {
 
 export type Color = keyof typeof colorsToDots;
 
+export interface Tab {
+  id: number;
+  url: string;
+}
+
 export interface TabGroup {
   groupId: number;
   groupName: string;
   color: Color;
   hidden: boolean;
-  tabIds: number[];
+  tabs: Tab[];
   updatesToGo: 0 | 1 | 2;
 }
 

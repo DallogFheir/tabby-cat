@@ -10,6 +10,7 @@ import {
 class TabbyCat {
   static #isInternallyConstructing = false;
   static #instance: Maybe<TabbyCat>;
+  #creatingTabs = false;
 
   constructor() {
     if (!TabbyCat.#isInternallyConstructing) {
@@ -36,7 +37,12 @@ class TabbyCat {
     let groupId = 1;
     const colors: Color[] = [];
     const tabGroups: TabGroup[] = tabs
-      .filter((tab) => tab.id !== undefined && !this.#isSpecialTab(tab.url))
+      .filter(
+        (tab) =>
+          tab.id !== undefined &&
+          tab.url !== undefined &&
+          !this.#isSpecialTab(tab.url)
+      )
       .map((tab) => {
         const color = this.#getColor(colors);
         colors.push(color);
@@ -46,7 +52,7 @@ class TabbyCat {
           groupName: tab?.title ?? "New group",
           color,
           hidden: false,
-          tabIds: [tab.id!],
+          tabs: [{ id: tab.id!, url: tab.url! }],
           updatesToGo: 0,
         };
       });
@@ -56,10 +62,41 @@ class TabbyCat {
       options: JSON.stringify({
         colorIndicator: "begin",
         removeEmptyGroups: true,
+        saveSessions: true,
       } satisfies Options),
     });
 
     await this.#updateAllTabsTitles();
+  }
+
+  async handleStartup(): Promise<void> {
+    const options = await this.#getOptions();
+
+    if (options) {
+      if (options.saveSessions) {
+        const tabGroups = await this.#getTabGroups();
+        this.#creatingTabs = true;
+        const createTabGroupsPromises =
+          tabGroups?.map(async (tabGroup) => {
+            const createTabsPromises = tabGroup.tabs.map(async (tab) => {
+              const newTab = await browser.tabs.create({
+                url: tab.url,
+              });
+
+              const newTabId = newTab.id;
+              if (newTabId) {
+                tab.id = newTabId;
+              }
+            });
+
+            return Promise.all(createTabsPromises);
+          }) ?? [];
+        await Promise.all(createTabGroupsPromises);
+        this.#creatingTabs = false;
+      } else {
+        await this.#saveTabGroups([]);
+      }
+    }
   }
 
   async #getTabGroups(): Promise<Maybe<TabGroup[]>> {
@@ -114,7 +151,7 @@ class TabbyCat {
           title: group.groupName,
           type: "radio",
           checked:
-            group.tabIds.find((tabInGroupId) => tabInGroupId === tab.id) !==
+            group.tabs.find((tabInGroup) => tabInGroup.id === tab.id) !==
             undefined,
           contexts: ["tab"],
         });
@@ -144,10 +181,13 @@ class TabbyCat {
       String(info.menuItemId).match(/^group-(\d+)$/)?.[1] ?? NaN
     );
     const tabId = tab.id;
+    const tabUrl = tab.url;
     const tabGroups = await this.#getTabGroups();
 
     const oldGroup = tabGroups?.find((tabGroup) =>
-      (tabGroup.tabIds as (number | undefined)[]).includes(tabId)
+      (tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]).includes(
+        tabId
+      )
     );
     const newGroup = tabGroups?.find(
       (tabGroup) => tabGroup.groupId === newGroupId
@@ -157,14 +197,15 @@ class TabbyCat {
       newGroupId &&
       tabGroups &&
       tabId !== undefined &&
+      tabUrl !== undefined &&
       oldGroup &&
       newGroup
     ) {
-      oldGroup.tabIds = oldGroup.tabIds.filter(
-        (tabInGroupId) => tabInGroupId !== tabId
+      oldGroup.tabs = oldGroup.tabs.filter(
+        (tabInGroup) => tabInGroup.id !== tabId
       );
 
-      newGroup.tabIds.push(tabId);
+      newGroup.tabs.push({ id: tabId, url: tabUrl });
 
       await this.#saveTabGroups(tabGroups);
     }
@@ -181,8 +222,8 @@ class TabbyCat {
     if (tabGroups) {
       outer: for (const tabGroup of tabGroups) {
         if (tabGroup.updatesToGo !== 0) {
-          for (const tabInGroupId of tabGroup.tabIds) {
-            if (tabInGroupId === tabId) {
+          for (const tabInGroup of tabGroup.tabs) {
+            if (tabInGroup.id === tabId) {
               tabGroup.updatesToGo--;
 
               if (tabGroup.updatesToGo === 0) {
@@ -202,7 +243,9 @@ class TabbyCat {
     const tabGroups = await this.#getTabGroups();
 
     if (tabGroups && options) {
-      const tabGroup = tabGroups.find((group) => group.tabIds.includes(tabId));
+      const tabGroup = tabGroups.find((group) =>
+        group.tabs.map(({ id }) => id).includes(tabId)
+      );
       const tab = await browser.tabs.get(tabId);
       const title = tab.title;
 
@@ -253,10 +296,14 @@ class TabbyCat {
   async #createNewGroup(tabId: number): Promise<void> {
     const tabGroups = await this.#getTabGroups();
     const tab = await browser.tabs.get(tabId);
+    const tabUrl = tab.url;
 
     if (
       tabGroups &&
-      tabGroups.every((tabGroup) => !tabGroup.tabIds.includes(tabId))
+      tabGroups.every(
+        (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
+      ) &&
+      tabUrl !== undefined
     ) {
       let freeId = 1;
       tabGroups
@@ -276,7 +323,7 @@ class TabbyCat {
           groupName: tab?.title ?? "New group",
           color: this.#getColor(tabGroups.map((tabGroup) => tabGroup.color)),
           hidden: false,
-          tabIds: [tabId],
+          tabs: [{ id: tabId, url: tabUrl }],
           updatesToGo: tab.url === "about:newtab" ? 2 : 1,
         },
       ]);
@@ -290,15 +337,20 @@ class TabbyCat {
   async #addToGroup(tabId: number, openerTabId: number): Promise<void> {
     const tabGroups = await this.#getTabGroups();
     const openerTabGroup = tabGroups?.find((tabGroup) =>
-      tabGroup.tabIds.includes(openerTabId)
+      tabGroup.tabs.map(({ id }) => id).includes(openerTabId)
     );
+    const tab = await browser.tabs.get(tabId);
+    const tabUrl = tab.url;
 
     if (
       tabGroups &&
-      tabGroups.every((tabGroup) => !tabGroup.tabIds.includes(tabId)) &&
-      openerTabGroup
+      tabGroups.every(
+        (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
+      ) &&
+      openerTabGroup &&
+      tabUrl
     ) {
-      openerTabGroup.tabIds.push(tabId);
+      openerTabGroup.tabs.push({ id: tabId, url: tabUrl });
       await this.#saveTabGroups(tabGroups);
     }
   }
@@ -312,20 +364,23 @@ class TabbyCat {
     if (tabGroups) {
       switch (tabAction) {
         case "ADD": {
-          const tab = tabOrTabId as browser.tabs.Tab;
+          if (!this.#creatingTabs) {
+            const tab = tabOrTabId as browser.tabs.Tab;
 
-          if (this.#isSpecialTab(tab.url)) {
-            return;
-          }
+            if (this.#isSpecialTab(tab.url)) {
+              return;
+            }
 
-          const tabId = tab.id;
-          if (tabId) {
-            if (tab.openerTabId === undefined) {
-              await this.#createNewGroup(tabId);
-            } else {
-              await this.#addToGroup(tabId, tab.openerTabId);
+            const tabId = tab.id;
+            if (tabId) {
+              if (tab.openerTabId === undefined) {
+                await this.#createNewGroup(tabId);
+              } else {
+                await this.#addToGroup(tabId, tab.openerTabId);
+              }
             }
           }
+
           break;
         }
         case "REMOVE": {
@@ -338,13 +393,13 @@ class TabbyCat {
             (tabGroup) =>
               ({
                 ...tabGroup,
-                tabIds: tabGroup.tabIds.filter(
-                  (tabInGroupId) => tabInGroupId !== tabId
+                tabs: tabGroup.tabs.filter(
+                  (tabInGroup) => tabInGroup.id !== tabId
                 ),
               }) satisfies TabGroup
           );
           if (removeEmptyGroups) {
-            res = res.filter((tabGroup) => tabGroup.tabIds.length > 0);
+            res = res.filter((tabGroup) => tabGroup.tabs.length > 0);
           }
 
           await this.#saveTabGroups(res);
@@ -369,7 +424,9 @@ class TabbyCat {
           const tabGroups = await this.#getTabGroups();
 
           if (
-            tabGroups?.every((tabGroup) => !tabGroup.tabIds.includes(tabId))
+            tabGroups?.every(
+              (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
+            )
           ) {
             if (tab.openerTabId === undefined) {
               await this.#createNewGroup(tabId);
@@ -418,4 +475,7 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
     tabbyCat.install();
   }
 });
-browser.runtime.onStartup.addListener(TabbyCat.getInstance);
+browser.runtime.onStartup.addListener(async () => {
+  const tabbyCat = TabbyCat.getInstance();
+  tabbyCat.handleStartup();
+});

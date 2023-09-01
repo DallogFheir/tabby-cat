@@ -9,6 +9,7 @@ Alpine.data(
       options: {
         colorIndicator: "begin",
         removeEmptyGroups: true,
+        saveSessions: true,
       },
 
       async init() {

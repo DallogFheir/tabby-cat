@@ -108,8 +108,8 @@
               </svg>
             </div>
             <ul class="tab-group-tab" x-show="shown" x-transition>
-              <template x-for="tabId in tabGroup.tabIds">
-                <li x-text="await getTabTitle(tabId)"></li>
+              <template x-for="tab in tabGroup.tabs">
+                <li x-text="await getTabTitle(tab.id)"></li>
               </template>
             </ul>
           </li>

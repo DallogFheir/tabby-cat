@@ -49,9 +49,7 @@ Alpine.data(
 
           if (tabGroup) {
             const tabsInGroup = await Promise.all(
-              tabGroup.tabIds.map(
-                async (tabId) => await browser.tabs.get(tabId)
-              )
+              tabGroup.tabs.map(async ({ id }) => await browser.tabs.get(id))
             );
             const activeTab = tabsInGroup.find((tab) => tab.active);
             if (action === "HIDE" && activeTab !== undefined) {
@@ -72,7 +70,7 @@ Alpine.data(
               await browser.tabs.update(nextOrPreviousTab.id, { active: true });
             }
 
-            await func(tabGroup.tabIds);
+            await func(tabGroup.tabs.map(({ id }) => id));
             tabGroup.hidden = action === "HIDE";
             browser.storage.sync.set({
               tabGroups: JSON.stringify(tabGroups),
@@ -106,9 +104,9 @@ Alpine.data(
             );
 
             if (tabGroup) {
-              await browser.tabs.remove(tabGroup.tabIds);
+              await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
 
-              tabGroup.tabIds = [];
+              tabGroup.tabs = [];
 
               await browser.storage.sync.set({
                 tabGroups: JSON.stringify(tabGroups),
@@ -136,7 +134,7 @@ Alpine.data(
           );
 
           if (tabGroup) {
-            await browser.tabs.remove(tabGroup.tabIds);
+            await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
 
             const newTabGroups = tabGroups.filter(
               (oldTabGroup) => oldTabGroup !== tabGroup

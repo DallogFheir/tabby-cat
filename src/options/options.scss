@@ -29,11 +29,12 @@ main {
 }
 
 .options {
-  list-style-type: "➤";
+  list-style-type: none;
 
   & > li {
     font-size: 1.5em;
     padding-left: 1em;
+    margin: 1em 0;
 
     & > form {
       display: flex;
@@ -50,10 +51,19 @@ main {
 
   &-label {
     display: inline;
+    position: relative;
 
     &-subtext {
-      margin-left: 2em;
       color: color.adjust(vars.$color-text, $lightness: -50%);
+    }
+
+    &-subradio {
+      margin-left: 2em;
+    }
+
+    &-subcheckbox {
+      margin-left: 1em;
+      font-size: 0.8em;
     }
 
     &-link {
@@ -67,7 +77,9 @@ main {
   }
 
   &-checkbox {
-    margin-left: 1em;
+    position: absolute;
+    left: -2.5em;
+    bottom: 0.3em;
     height: 1.5em;
     width: 1.5em;
   }
