@@ -32,5 +32,10 @@
     "open_in_tab": true
   },
   "permissions": ["menus", "storage", "tabHide", "tabs"],
-  "content_security_policy": "script-src 'self' 'unsafe-eval';"
+  "content_security_policy": "script-src 'self' 'unsafe-eval';",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tabby-cat@dallog-fheir"
+    }
+  }
 }

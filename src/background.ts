@@ -19,24 +19,57 @@ class TabbyCat {
     TabbyCat.#isInternallyConstructing = false;
     this.#initContextMenuListener();
     this.#initTabListener();
-    this.#initOptions();
+    this.#initOptionsListener();
   }
 
-  static initialize(): void {
+  static getInstance(): TabbyCat {
     if (!TabbyCat.#instance) {
       TabbyCat.#isInternallyConstructing = true;
       TabbyCat.#instance = new TabbyCat();
     }
+
+    return TabbyCat.#instance;
+  }
+
+  async install(): Promise<void> {
+    const tabs = await browser.tabs.query({});
+    let groupId = 1;
+    const colors: Color[] = [];
+    const tabGroups: TabGroup[] = tabs
+      .filter((tab) => tab.id !== undefined && !this.#isSpecialTab(tab.url))
+      .map((tab) => {
+        const color = this.#getColor(colors);
+        colors.push(color);
+
+        return {
+          groupId: groupId++,
+          groupName: tab?.title ?? "New group",
+          color,
+          hidden: false,
+          tabIds: [tab.id!],
+          updatesToGo: 0,
+        };
+      });
+    await this.#saveTabGroups(tabGroups);
+
+    await browser.storage.sync.set({
+      options: JSON.stringify({
+        colorIndicator: "begin",
+        removeEmptyGroups: true,
+      } satisfies Options),
+    });
+
+    await this.#updateAllTabsTitles();
   }
 
   async #getTabGroups(): Promise<Maybe<TabGroup[]>> {
-    const tabGroups = (await browser.storage.local.get("tabGroups")).tabGroups;
+    const tabGroups = (await browser.storage.sync.get("tabGroups")).tabGroups;
 
     return tabGroups ? JSON.parse(tabGroups as string) : null;
   }
 
   async #getOptions(): Promise<Maybe<Options>> {
-    const options = (await browser.storage.local.get("options")).options;
+    const options = (await browser.storage.sync.get("options")).options;
 
     return options ? JSON.parse(options as string) : null;
   }
@@ -46,7 +79,7 @@ class TabbyCat {
   }
 
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
-    await browser.storage.local.set({
+    await browser.storage.sync.set({
       tabGroups: JSON.stringify(tabGroups),
     });
   }
@@ -68,7 +101,7 @@ class TabbyCat {
     tab: browser.tabs.Tab
   ): Promise<void> {
     const tabGroups = JSON.parse(
-      ((await browser.storage.local.get("tabGroups"))
+      ((await browser.storage.sync.get("tabGroups"))
         ?.tabGroups as Maybe<string>) ?? "[]"
     ) as TabGroup[];
 
@@ -326,28 +359,6 @@ class TabbyCat {
   }
 
   async #initTabListener(): Promise<void> {
-    const tabs = await browser.tabs.query({});
-    let groupId = 1;
-    const colors: Color[] = [];
-    const tabGroups: TabGroup[] = tabs
-      .filter((tab) => tab.id !== undefined && !this.#isSpecialTab(tab.url))
-      .map((tab) => {
-        const color = this.#getColor(colors);
-        colors.push(color);
-
-        return {
-          groupId: groupId++,
-          groupName: tab?.title ?? "New group",
-          color,
-          hidden: false,
-          tabIds: [tab.id!],
-          updatesToGo: 0,
-        };
-      });
-
-    await this.#saveTabGroups(tabGroups);
-    await this.#updateAllTabsTitles();
-
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
       async (tabId) => {
@@ -387,17 +398,10 @@ class TabbyCat {
     );
   }
 
-  async #initOptions(): Promise<void> {
-    await browser.storage.local.set({
-      options: JSON.stringify({
-        colorIndicator: "begin",
-        removeEmptyGroups: true,
-      } satisfies Options),
-    });
-
+  async #initOptionsListener(): Promise<void> {
     /* eslint-disable-next-line */
     /* @ts-ignore */
-    browser.storage.local.onChanged.addListener((changes: OptionsChange) => {
+    browser.storage.sync.onChanged.addListener((changes: OptionsChange) => {
       const options = changes.options;
 
       if (options !== undefined) {
@@ -407,5 +411,11 @@ class TabbyCat {
   }
 }
 
-browser.runtime.onInstalled.addListener(TabbyCat.initialize);
-browser.runtime.onStartup.addListener(TabbyCat.initialize);
+browser.runtime.onInstalled.addListener(({ reason }) => {
+  const tabbyCat = TabbyCat.getInstance();
+
+  if (reason === "install") {
+    tabbyCat.install();
+  }
+});
+browser.runtime.onStartup.addListener(TabbyCat.getInstance);

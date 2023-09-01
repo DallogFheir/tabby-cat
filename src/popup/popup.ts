@@ -12,7 +12,7 @@ Alpine.data(
       tabGroups: [],
 
       async init() {
-        const tabGroups = (await browser.storage.local.get("tabGroups"))
+        const tabGroups = (await browser.storage.sync.get("tabGroups"))
           .tabGroups;
         if (tabGroups !== undefined) {
           this.tabGroups = JSON.parse(tabGroups as string) as TabGroup[];
@@ -38,7 +38,7 @@ Alpine.data(
           }
         }
 
-        const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
+        const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
           .tabGroups as Maybe<string>;
 
         if (tabGroupsJson) {
@@ -74,7 +74,7 @@ Alpine.data(
 
             await func(tabGroup.tabIds);
             tabGroup.hidden = action === "HIDE";
-            browser.storage.local.set({
+            browser.storage.sync.set({
               tabGroups: JSON.stringify(tabGroups),
             });
 
@@ -89,9 +89,9 @@ Alpine.data(
       },
 
       async closeGroup(groupId: number): Promise<void> {
-        const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
+        const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
           .tabGroups as Maybe<string>;
-        const optionsJson = (await browser.storage.local.get("options"))
+        const optionsJson = (await browser.storage.sync.get("options"))
           .options as Maybe<string>;
 
         if (tabGroupsJson && optionsJson) {
@@ -110,7 +110,7 @@ Alpine.data(
 
               tabGroup.tabIds = [];
 
-              await browser.storage.local.set({
+              await browser.storage.sync.set({
                 tabGroups: JSON.stringify(tabGroups),
               });
 
@@ -126,7 +126,7 @@ Alpine.data(
       },
 
       async removeGroup(groupId: number): Promise<void> {
-        const tabGroupsJson = (await browser.storage.local.get("tabGroups"))
+        const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
           .tabGroups as Maybe<string>;
 
         if (tabGroupsJson) {
@@ -141,7 +141,7 @@ Alpine.data(
             const newTabGroups = tabGroups.filter(
               (oldTabGroup) => oldTabGroup !== tabGroup
             );
-            await browser.storage.local.set({
+            await browser.storage.sync.set({
               tabGroups: JSON.stringify(newTabGroups),
             });
 

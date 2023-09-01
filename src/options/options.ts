@@ -12,7 +12,7 @@ Alpine.data(
       },
 
       async init() {
-        const options = (await browser.storage.local.get("options")).options;
+        const options = (await browser.storage.sync.get("options")).options;
 
         if (options !== undefined) {
           this.options = JSON.parse(options as string) as Options;
@@ -23,7 +23,7 @@ Alpine.data(
         optionName: keyof Options,
         value: Options[keyof Options]
       ): Promise<void> {
-        await browser.storage.local.set({
+        await browser.storage.sync.set({
           options: JSON.stringify({
             ...this.options,
             [optionName]: value,
