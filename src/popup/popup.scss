@@ -89,7 +89,7 @@ ul {
   }
 
   &-title {
-    width: calc(100% - 2em);
+    width: 100%;
     display: inline-flex;
     justify-content: space-between;
 
@@ -103,9 +103,28 @@ ul {
     }
   }
 
-  &-tab {
+  &-tabs {
     width: calc(vars.$popup-width - 2rem - 1.3em);
     font-weight: normal;
     padding-left: 1.3em;
+
+    &-tab {
+      margin: 0.5em 0;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+
+      &-favicon {
+        width: 1em;
+        height: 1em;
+        margin-right: 0.5em;
+      }
+
+      &-title {
+        display: inline-block;
+        width: calc(100% - 2em);
+        @include vars.hidden-text;
+      }
+    }
   }
 }

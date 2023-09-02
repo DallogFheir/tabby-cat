@@ -9,6 +9,7 @@ Alpine.data(
   "tabGroups",
   () =>
     ({
+      currentTabId: null,
       tabGroups: [],
 
       async init() {
@@ -17,6 +18,9 @@ Alpine.data(
         if (tabGroups !== undefined) {
           this.tabGroups = JSON.parse(tabGroups as string) as TabGroup[];
         }
+
+        const activeTabs = await browser.tabs.query({ active: true });
+        this.currentTabId = activeTabs[0].id ?? null;
       },
 
       async showHideGroup(
@@ -200,6 +204,21 @@ Alpine.data(
         }
       },
 
+      async peekTab(tabId: number): Promise<void> {
+        await browser.tabs.update(tabId, { active: true });
+      },
+
+      async stopPeek(): Promise<void> {
+        if (this.currentTabId !== null) {
+          await browser.tabs.update(this.currentTabId, { active: true });
+        }
+      },
+
+      async goToTab(tabId: number): Promise<void> {
+        this.currentTabId = tabId;
+        await this.peekTab(tabId);
+      },
+
       async getTabTitle(tabId: number): Promise<string> {
         const tab = await browser.tabs.get(tabId);
         const title = tab.title;
@@ -214,6 +233,11 @@ Alpine.data(
           : dots.some((dot) => title.endsWith(dot))
           ? title.slice(0, -2)
           : title;
+      },
+
+      async getTabFavicon(tabId: number): Promise<Maybe<string>> {
+        const tab = await browser.tabs.get(tabId);
+        return tab.favIconUrl;
       },
 
       async shouldIconBeDisabled(

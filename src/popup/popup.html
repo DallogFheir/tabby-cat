@@ -34,7 +34,11 @@
           <span>Empty here...</span>
         </template>
         <template x-for="tabGroup in tabGroups">
-          <li class="tab-group" x-data="{ shown: true }">
+          <li
+            class="tab-group"
+            x-data="{ shown: true }"
+            x-bind:title="tabGroup.groupName"
+          >
             <div
               class="tab-group-title"
               x-bind:style="{ color: tabGroup.color }"
@@ -77,9 +81,31 @@
                 @click="openTabInGroup(tabGroup.groupId)"
               ></i>
             </div>
-            <ul class="tab-group-tab" x-show="shown" x-transition>
+            <ul class="tab-group-tabs" x-show="shown" x-transition>
               <template x-for="tab in tabGroup.tabs">
-                <li x-text="await getTabTitle(tab.id)"></li>
+                <li
+                  class="tab-group-tabs-tab"
+                  x-data="{ favicon: null }"
+                  x-init="favicon = await getTabFavicon(tab.id)"
+                  x-bind:title="await getTabTitle(tab.id)"
+                  @mouseover="peekTab(tab.id)"
+                  @mouseout="stopPeek()"
+                  @click="goToTab(tab.id)"
+                >
+                  <template x-if="favicon">
+                    <img
+                      class="tab-group-tabs-tab-favicon"
+                      x-bind:src="favicon"
+                    />
+                  </template>
+                  <template x-if="!favicon">
+                    <i class="bi bi-globe2 tab-group-tabs-tab-favicon"></i>
+                  </template>
+                  <span
+                    class="tab-group-tabs-tab-title"
+                    x-text="await getTabTitle(tab.id)"
+                  ></span>
+                </li>
               </template>
             </ul>
           </li>
