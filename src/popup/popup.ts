@@ -179,6 +179,27 @@ Alpine.data(
         }
       },
 
+      async openTabInGroup(groupId: number): Promise<void> {
+        const tab = await browser.tabs.create({});
+        const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
+          .tabGroups as Maybe<string>;
+
+        if (tabGroupsJson && tab.id !== undefined) {
+          const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
+          const tabGroup = tabGroups.find(
+            (tabGroup) => tabGroup.groupId === groupId
+          );
+
+          if (tabGroup) {
+            tabGroup.tabs.push({ id: tab.id, url: tab.url ?? "New Tab" });
+
+            await browser.storage.sync.set({
+              tabGroups: JSON.stringify(tabGroups),
+            });
+          }
+        }
+      },
+
       async getTabTitle(tabId: number): Promise<string> {
         const tab = await browser.tabs.get(tabId);
         const title = tab.title;

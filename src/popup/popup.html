@@ -71,6 +71,11 @@
                 title="delete group"
                 @click="removeGroup(tabGroup.groupId)"
               ></i>
+              <i
+                class="bi bi-folder-fill icon"
+                title="open new tab in this group"
+                @click="openTabInGroup(tabGroup.groupId)"
+              ></i>
             </div>
             <ul class="tab-group-tab" x-show="shown" x-transition>
               <template x-for="tab in tabGroup.tabs">
