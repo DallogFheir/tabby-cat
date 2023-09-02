@@ -80,6 +80,9 @@ Alpine.data(
               tabGroups: JSON.stringify(tabGroups),
             });
 
+            const activeTabs = await browser.tabs.query({ active: true });
+            this.currentTabId = activeTabs[0].id;
+
             const updateEvent = new CustomEvent("x-tabbycat-update", {
               detail: {
                 tabGroups,
@@ -115,6 +118,9 @@ Alpine.data(
               await browser.storage.sync.set({
                 tabGroups: JSON.stringify(tabGroups),
               });
+
+              const activeTabs = await browser.tabs.query({ active: true });
+              this.currentTabId = activeTabs[0].id;
 
               const updateEvent = new CustomEvent("x-tabbycat-update", {
                 detail: {

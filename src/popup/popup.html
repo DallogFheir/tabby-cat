@@ -85,12 +85,13 @@
               <template x-for="tab in tabGroup.tabs">
                 <li
                   class="tab-group-tabs-tab"
+                  x-bind:class="!tabGroup.hidden && 'tab-group-tabs-tab-visible'"
                   x-data="{ favicon: null }"
                   x-init="favicon = await getTabFavicon(tab.id)"
                   x-bind:title="await getTabTitle(tab.id)"
-                  @mouseover="peekTab(tab.id)"
-                  @mouseout="stopPeek()"
-                  @click="goToTab(tab.id)"
+                  @mouseover="!tabGroup.hidden && peekTab(tab.id)"
+                  @mouseout="!tabGroup.hidden && stopPeek()"
+                  @click="!tabGroup.hidden && goToTab(tab.id)"
                 >
                   <template x-if="favicon">
                     <img
