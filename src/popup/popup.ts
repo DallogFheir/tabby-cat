@@ -153,6 +153,32 @@ Alpine.data(
         }
       },
 
+      async removeAllGroups(): Promise<void> {
+        const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
+          .tabGroups as Maybe<string>;
+
+        if (tabGroupsJson) {
+          const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
+          const tabIds = tabGroups.reduce((tabIdsAcc, tabGroup) => {
+            tabIdsAcc.push(...tabGroup.tabs.map(({ id }) => id));
+            return tabIdsAcc;
+          }, [] as number[]);
+
+          await browser.tabs.remove(tabIds);
+
+          await browser.storage.sync.set({
+            tabGroups: JSON.stringify([]),
+          });
+
+          const updateEvent = new CustomEvent("x-tabbycat-update", {
+            detail: {
+              tabGroups: [],
+            },
+          });
+          document.body.dispatchEvent(updateEvent);
+        }
+      },
+
       async getTabTitle(tabId: number): Promise<string> {
         const tab = await browser.tabs.get(tabId);
         const title = tab.title;

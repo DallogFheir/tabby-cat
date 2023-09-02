@@ -19,6 +19,7 @@ export interface AlpineTabGroupsData extends AlpineData {
   showHideGroup(groupId: number, action: TabGroupAction): Promise<void>;
   closeGroup(groupId: number): Promise<void>;
   removeGroup(groupId: number): Promise<void>;
+  removeAllGroups(): Promise<void>;
   getTabTitle(tabId: number): Promise<string>;
   shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
 }

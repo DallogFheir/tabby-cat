@@ -18,7 +18,7 @@ Unfortunately, WebExtensions API does not support changing the color of individu
 
 5. Restart Firefox.
 
-It will look lie this:
+It will look like this:
 
 ![colored tabs](./docs/color-indicators.png)
 
