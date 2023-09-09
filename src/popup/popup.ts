@@ -302,9 +302,13 @@ Alpine.data(
         return false;
       },
 
-      async isTabCurrent(tabId: number): Promise<boolean> {
+      async isTabVisible(tabId: number): Promise<boolean> {
         const tab = await browser.tabs.get(tabId);
         return tab.active;
+      },
+
+      async isTabCurrent(tabId: number): Promise<boolean> {
+        return this.currentTabId === tabId;
       },
     }) satisfies AlpineTabGroupsData
 );

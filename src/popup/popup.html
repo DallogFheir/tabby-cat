@@ -34,11 +34,7 @@
           <span>Empty here...</span>
         </template>
         <template x-for="tabGroup in tabGroups">
-          <li
-            class="tab-group"
-            x-data="{ shown: true }"
-            x-bind:title="tabGroup.groupName"
-          >
+          <li class="tab-group" x-data="{ shown: true }">
             <div
               class="tab-group-title"
               x-bind:style="{ color: tabGroup.color }"
@@ -47,6 +43,7 @@
                 class="tab-group-title-text"
                 x-bind:class="tabGroup.tabs.length === 0 ? '' : shown ? 'tab-group-title-text-active tab-group-shown' : 'tab-group-title-text-active tab-group-hidden'"
                 x-text="tabGroup.groupName"
+                x-bind:title="tabGroup.groupName"
                 @click="shown = !shown"
               ></span>
               <div class="tab-group-title-icons">
@@ -93,7 +90,8 @@
               <template x-for="tab in tabGroup.tabs" :key="tab.id">
                 <li
                   class="tab-group-tabs-tab"
-                  x-bind:class="!tabGroup.hidden && 'tab-group-tabs-tab-visible'"
+                  x-bind:class="((await isTabCurrent(tab.id)) || tabGroup.hidden) && 'tab-group-tabs-tab-non-interactive'"
+                  x-bind:class="(await isTabVisible(tab.id)) && 'tab-groups-tabs-tab-visible'"
                   x-data="{ favicon: null }"
                   x-init="favicon = await getTabFavicon(tab.id)"
                   x-bind:title="await getTabTitle(tab.id)"
@@ -112,7 +110,6 @@
                   </template>
                   <span
                     class="tab-group-tabs-tab-title"
-                    x-bind:class="(await isTabCurrent(tab.id)) && 'tab-group-tabs-tab-title-current'"
                     x-text="await getTabTitle(tab.id)"
                   ></span>
                 </li>

@@ -118,10 +118,7 @@ ul {
       margin: 0.5em 0;
       display: flex;
       align-items: center;
-
-      &-visible {
-        cursor: pointer;
-      }
+      cursor: pointer;
 
       &-favicon {
         width: 1em;
@@ -133,10 +130,16 @@ ul {
         display: inline-block;
         width: calc(100% - 2em);
         @include vars.hidden-text;
+      }
 
-        &-current {
-          color: color.adjust(vars.$color-text, $lightness: -20%);
-        }
+      &-non-interactive {
+        color: color.adjust(vars.$color-text, $lightness: -20%);
+        pointer-events: none;
+        cursor: default;
+      }
+
+      &-visible {
+        color: color.adjust(vars.$color-text, $lightness: -20%);
       }
     }
   }

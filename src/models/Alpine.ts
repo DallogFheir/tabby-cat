@@ -35,5 +35,6 @@ export interface AlpineTabGroupsData extends AlpineData {
   getTabFavicon(tabId: number): Promise<Maybe<string>>;
   shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
   shouldAssignIconBeDisabled(tabGroup: TabGroup): Promise<boolean>;
+  isTabVisible(tabId: number): Promise<boolean>;
   isTabCurrent(tabId: number): Promise<boolean>;
 }
