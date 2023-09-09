@@ -6,6 +6,7 @@ import {
   type TabAction,
   type TabGroup,
 } from "./models/Tabs";
+import { getTabGroups, getOptions, updateTabTitle } from "./common";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
@@ -70,11 +71,11 @@ class TabbyCat {
   }
 
   async handleStartup(): Promise<void> {
-    const options = await this.#getOptions();
+    const options = await getOptions();
 
     if (options) {
       if (options.saveSessions) {
-        const tabGroups = await this.#getTabGroups();
+        const tabGroups = await getTabGroups();
         this.#creatingTabs = true;
         const createTabGroupsPromises =
           tabGroups?.map(async (tabGroup) => {
@@ -97,18 +98,6 @@ class TabbyCat {
         await this.#saveTabGroups([]);
       }
     }
-  }
-
-  async #getTabGroups(): Promise<Maybe<TabGroup[]>> {
-    const tabGroups = (await browser.storage.sync.get("tabGroups")).tabGroups;
-
-    return tabGroups ? JSON.parse(tabGroups as string) : null;
-  }
-
-  async #getOptions(): Promise<Maybe<Options>> {
-    const options = (await browser.storage.sync.get("options")).options;
-
-    return options ? JSON.parse(options as string) : null;
   }
 
   #isSpecialTab(url: Maybe<string>): boolean {
@@ -182,7 +171,7 @@ class TabbyCat {
     );
     const tabId = tab.id;
     const tabUrl = tab.url;
-    const tabGroups = await this.#getTabGroups();
+    const tabGroups = await getTabGroups();
 
     const oldGroup = tabGroups?.find((tabGroup) =>
       (tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]).includes(
@@ -217,7 +206,7 @@ class TabbyCat {
   }
 
   async #updateGroupName(tabId: number, title: string): Promise<void> {
-    const tabGroups = await this.#getTabGroups();
+    const tabGroups = await getTabGroups();
 
     if (tabGroups) {
       outer: for (const tabGroup of tabGroups) {
@@ -238,63 +227,16 @@ class TabbyCat {
     }
   }
 
-  async #updateTabTitle(tabId: number): Promise<void> {
-    const options = await this.#getOptions();
-    const tabGroups = await this.#getTabGroups();
-
-    if (tabGroups && options) {
-      const tabGroup = tabGroups.find((group) =>
-        group.tabs.map(({ id }) => id).includes(tabId)
-      );
-      const tab = await browser.tabs.get(tabId);
-      const title = tab.title;
-
-      if (tabGroup && title) {
-        const dot = colorsToDots[tabGroup.color];
-        const startsWithDot = Object.values(colorsToDots).some((dot) =>
-          title.startsWith(dot)
-        );
-        const endsWithDot = Object.values(colorsToDots).some((dot) =>
-          title.endsWith(dot)
-        );
-
-        const titleWithoutDot = startsWithDot
-          ? title.slice(2)
-          : endsWithDot
-          ? title.slice(0, -2)
-          : title;
-
-        let newTitle: string;
-        switch (options.colorIndicator) {
-          case "off": {
-            newTitle = titleWithoutDot;
-            break;
-          }
-          case "begin": {
-            newTitle = `${dot} ${titleWithoutDot}`;
-            break;
-          }
-          case "end": {
-            newTitle = `${titleWithoutDot} ${dot}`;
-            break;
-          }
-        }
-
-        browser.tabs.sendMessage(tabId, newTitle);
-      }
-    }
-  }
-
   async #updateAllTabsTitles(): Promise<void> {
     const tabs = await browser.tabs.query({});
     const updateTitlesPromises = tabs
       .filter((tab) => tab.id !== undefined)
-      .map(({ id }) => this.#updateTabTitle(id as number));
+      .map(({ id }) => updateTabTitle(id as number));
     await Promise.all(updateTitlesPromises);
   }
 
   async #createNewGroup(tabId: number): Promise<void> {
-    const tabGroups = await this.#getTabGroups();
+    const tabGroups = await getTabGroups();
     const tab = await browser.tabs.get(tabId);
     const tabUrl = tab.url;
 
@@ -330,12 +272,12 @@ class TabbyCat {
 
       await this.#saveTabGroups(res);
 
-      await this.#updateTabTitle(tabId);
+      await updateTabTitle(tabId);
     }
   }
 
   async #addToGroup(tabId: number, openerTabId: number): Promise<void> {
-    const tabGroups = await this.#getTabGroups();
+    const tabGroups = await getTabGroups();
     const openerTabGroup = tabGroups?.find((tabGroup) =>
       tabGroup.tabs.map(({ id }) => id).includes(openerTabId)
     );
@@ -359,7 +301,7 @@ class TabbyCat {
     tabOrTabId: browser.tabs.Tab | number,
     tabAction: TabAction
   ): Promise<void> {
-    const tabGroups = await this.#getTabGroups();
+    const tabGroups = await getTabGroups();
 
     if (tabGroups) {
       switch (tabAction) {
@@ -387,7 +329,7 @@ class TabbyCat {
           const tabId = tabOrTabId as number;
 
           const removeEmptyGroups =
-            (await this.#getOptions())?.removeEmptyGroups ?? true;
+            (await getOptions())?.removeEmptyGroups ?? true;
 
           let res = tabGroups.map(
             (tabGroup) =>
@@ -421,7 +363,7 @@ class TabbyCat {
 
         if (status === "complete" && !this.#isSpecialTab(url)) {
           const tab = await browser.tabs.get(tabId);
-          const tabGroups = await this.#getTabGroups();
+          const tabGroups = await getTabGroups();
 
           if (
             tabGroups?.every(
@@ -441,7 +383,7 @@ class TabbyCat {
           Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
         ) {
           await this.#updateGroupName(tabId, title);
-          await this.#updateTabTitle(tabId);
+          await updateTabTitle(tabId);
         }
       },
       /* eslint-disable-next-line */

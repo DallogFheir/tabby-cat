@@ -80,9 +80,15 @@
                 title="open new tab in this group"
                 @click="openTabInGroup(tabGroup.groupId)"
               ></i>
+              <i
+                class="bi bi-bookmark-star-fill icon"
+                title="assign current tab to this group"
+                x-bind:class="await shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
+                @click="assignCurrentTabToGroup(tabGroup.groupId)"
+              ></i>
             </div>
             <ul class="tab-group-tabs" x-show="shown" x-transition>
-              <template x-for="tab in tabGroup.tabs">
+              <template x-for="tab in tabGroup.tabs" :key="tab.id">
                 <li
                   class="tab-group-tabs-tab"
                   x-bind:class="!tabGroup.hidden && 'tab-group-tabs-tab-visible'"
