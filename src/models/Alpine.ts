@@ -18,6 +18,7 @@ export interface AlpineOptionsData extends AlpineData {
 export interface AlpineTabGroupsData extends AlpineData {
   currentTabId: Maybe<number>;
   tabGroups: TabGroup[];
+  dispatchUpdateEvent(detail?: unknown): Promise<void>;
   showHideGroup(groupId: number, action: TabGroupAction): Promise<void>;
   closeGroup(groupId: number): Promise<void>;
   removeGroup(groupId: number): Promise<void>;
@@ -29,4 +30,5 @@ export interface AlpineTabGroupsData extends AlpineData {
   getTabTitle(tabId: number): Promise<string>;
   getTabFavicon(tabId: number): Promise<Maybe<string>>;
   shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
+  isTabCurrent(tabId: number): Promise<boolean>;
 }

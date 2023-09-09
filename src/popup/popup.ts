@@ -23,6 +23,25 @@ Alpine.data(
         this.currentTabId = activeTabs[0].id ?? null;
       },
 
+      async dispatchUpdateEvent(detail: unknown = null): Promise<void> {
+        if (detail === null) {
+          const tabGroupsJson = (await browser.storage.sync.get("tabGroups"))
+            .tabGroups as Maybe<string>;
+
+          if (!tabGroupsJson) {
+            return;
+          }
+
+          const tabGroups = JSON.parse(tabGroupsJson) as TabGroup[];
+          detail = { tabGroups };
+        }
+
+        const updateEvent = new CustomEvent("x-tabbycat-update", {
+          detail,
+        });
+        document.body.dispatchEvent(updateEvent);
+      },
+
       async showHideGroup(
         groupId: number,
         action: TabGroupAction
@@ -83,12 +102,7 @@ Alpine.data(
             const activeTabs = await browser.tabs.query({ active: true });
             this.currentTabId = activeTabs[0].id;
 
-            const updateEvent = new CustomEvent("x-tabbycat-update", {
-              detail: {
-                tabGroups,
-              },
-            });
-            document.body.dispatchEvent(updateEvent);
+            await this.dispatchUpdateEvent({ tabGroups });
           }
         }
       },
@@ -122,12 +136,7 @@ Alpine.data(
               const activeTabs = await browser.tabs.query({ active: true });
               this.currentTabId = activeTabs[0].id;
 
-              const updateEvent = new CustomEvent("x-tabbycat-update", {
-                detail: {
-                  tabGroups: tabGroups,
-                },
-              });
-              document.body.dispatchEvent(updateEvent);
+              await this.dispatchUpdateEvent({ tabGroups });
             }
           }
         }
@@ -153,12 +162,7 @@ Alpine.data(
               tabGroups: JSON.stringify(newTabGroups),
             });
 
-            const updateEvent = new CustomEvent("x-tabbycat-update", {
-              detail: {
-                tabGroups: newTabGroups,
-              },
-            });
-            document.body.dispatchEvent(updateEvent);
+            await this.dispatchUpdateEvent({ tabGroups: newTabGroups });
           }
         }
       },
@@ -180,12 +184,7 @@ Alpine.data(
             tabGroups: JSON.stringify([]),
           });
 
-          const updateEvent = new CustomEvent("x-tabbycat-update", {
-            detail: {
-              tabGroups: [],
-            },
-          });
-          document.body.dispatchEvent(updateEvent);
+          await this.dispatchUpdateEvent({ tabGroups: [] });
         }
       },
 
@@ -212,12 +211,14 @@ Alpine.data(
 
       async peekTab(tabId: number): Promise<void> {
         await browser.tabs.update(tabId, { active: true });
+        await this.dispatchUpdateEvent();
       },
 
       async stopPeek(): Promise<void> {
         if (this.currentTabId !== null) {
           await browser.tabs.update(this.currentTabId, { active: true });
         }
+        await this.dispatchUpdateEvent();
       },
 
       async goToTab(tabId: number): Promise<void> {
@@ -264,6 +265,11 @@ Alpine.data(
         }
 
         return false;
+      },
+
+      async isTabCurrent(tabId: number): Promise<boolean> {
+        const tab = await browser.tabs.get(tabId);
+        return tab.active;
       },
     }) satisfies AlpineTabGroupsData
 );

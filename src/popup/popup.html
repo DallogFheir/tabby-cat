@@ -104,6 +104,7 @@
                   </template>
                   <span
                     class="tab-group-tabs-tab-title"
+                    x-bind:class="(await isTabCurrent(tab.id)) && 'tab-group-tabs-tab-title-current'"
                     x-text="await getTabTitle(tab.id)"
                   ></span>
                 </li>
