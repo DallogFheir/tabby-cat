@@ -49,43 +49,45 @@
                 x-text="tabGroup.groupName"
                 @click="shown = !shown"
               ></span>
-              <template x-if="!tabGroup.hidden">
+              <div class="tab-group-title-icons">
+                <template x-if="!tabGroup.hidden">
+                  <i
+                    class="bi bi-eye-fill icon"
+                    title="hide all tabs in group"
+                    x-bind:class="await shouldIconBeDisabled('HIDE', tabGroup.tabs.length) && 'icon-disabled'"
+                    @click="showHideGroup(tabGroup.groupId, 'HIDE')"
+                  ></i>
+                </template>
+                <template x-if="tabGroup.hidden">
+                  <i
+                    class="bi bi-eye-slash-fill icon"
+                    title="show all tabs in group"
+                    x-bind:class="await shouldIconBeDisabled('SHOW', tabGroup.tabs.length) && 'icon-disabled'"
+                    @click="showHideGroup(tabGroup.groupId, 'SHOW')"
+                  ></i>
+                </template>
                 <i
-                  class="bi bi-eye-fill icon"
-                  title="hide all tabs in group"
-                  x-bind:class="await shouldIconBeDisabled('HIDE', tabGroup.tabs.length) && 'icon-disabled'"
-                  @click="showHideGroup(tabGroup.groupId, 'HIDE')"
+                  class="bi bi-x-circle-fill icon"
+                  title="close all tabs in group"
+                  @click="closeGroup(tabGroup.groupId)"
                 ></i>
-              </template>
-              <template x-if="tabGroup.hidden">
                 <i
-                  class="bi bi-eye-slash-fill icon"
-                  title="show all tabs in group"
-                  x-bind:class="await shouldIconBeDisabled('SHOW', tabGroup.tabs.length) && 'icon-disabled'"
-                  @click="showHideGroup(tabGroup.groupId, 'SHOW')"
+                  class="bi bi-trash3-fill icon"
+                  title="delete group"
+                  @click="removeGroup(tabGroup.groupId)"
                 ></i>
-              </template>
-              <i
-                class="bi bi-x-circle-fill icon"
-                title="close all tabs in group"
-                @click="closeGroup(tabGroup.groupId)"
-              ></i>
-              <i
-                class="bi bi-trash3-fill icon"
-                title="delete group"
-                @click="removeGroup(tabGroup.groupId)"
-              ></i>
-              <i
-                class="bi bi-folder-fill icon"
-                title="open new tab in this group"
-                @click="openTabInGroup(tabGroup.groupId)"
-              ></i>
-              <i
-                class="bi bi-bookmark-star-fill icon"
-                title="assign current tab to this group"
-                x-bind:class="await shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
-                @click="assignCurrentTabToGroup(tabGroup.groupId)"
-              ></i>
+                <i
+                  class="bi bi-folder-fill icon"
+                  title="open new tab in this group"
+                  @click="openTabInGroup(tabGroup.groupId)"
+                ></i>
+                <i
+                  class="bi bi-bookmark-star-fill icon"
+                  title="assign current tab to this group"
+                  x-bind:class="await shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
+                  @click="assignCurrentTabToGroup(tabGroup.groupId)"
+                ></i>
+              </div>
             </div>
             <ul class="tab-group-tabs" x-show="shown" x-transition>
               <template x-for="tab in tabGroup.tabs" :key="tab.id">

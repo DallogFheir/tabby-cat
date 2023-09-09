@@ -95,12 +95,17 @@ ul {
     justify-content: space-between;
 
     &-text {
-      width: calc(vars.$popup-width - 2rem - 6em);
+      width: calc(vars.$popup-width - 2rem - 8em);
       @include vars.hidden-text;
 
       &-active {
         cursor: pointer;
       }
+    }
+
+    &-icons {
+      display: flex;
+      gap: 0.5em;
     }
   }
 
