@@ -61,10 +61,10 @@ ul {
   &-settings:hover::before {
     transform: rotate(40deg);
   }
-}
 
-.icon.icon-hidden {
-  display: none;
+  &.#{&}-hidden {
+    display: none;
+  }
 }
 
 .tab-group {
