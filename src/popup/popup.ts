@@ -1,9 +1,14 @@
 import Alpine from "alpinejs";
 import type { Maybe } from "../models/Maybe";
-import type { TabGroup } from "../models/Tabs";
+import {
+  colorsToDots,
+  type Color,
+  type TabGroup,
+  UpdateToGo,
+} from "../models/Tabs";
 import type { TabGroupAction, ActionIcon } from "../models/Popup";
 import type { AlpineTabGroupsData } from "../models/Alpine";
-import { getTabGroups, getOptions, updateTabTitle } from "../common";
+import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "../common";
 
 Alpine.data(
   "tabGroups",
@@ -11,6 +16,10 @@ Alpine.data(
     ({
       currentTabId: null,
       tabGroups: [],
+      colorsToDots,
+      groupBeingEditedId: null,
+      inputtedName: "",
+      selectedColor: Object.keys(colorsToDots)[0] as Color,
 
       async init() {
         this.tabGroups = (await getTabGroups()) ?? [];
@@ -19,19 +28,17 @@ Alpine.data(
         this.currentTabId = activeTabs[0].id ?? null;
       },
 
-      async dispatchUpdateEvent(detail: unknown = null): Promise<void> {
-        if (detail === null) {
-          const tabGroups = await getTabGroups();
+      async dispatchUpdateEvent(): Promise<void> {
+        const tabGroups = await getTabGroups();
 
-          if (!tabGroups) {
-            return;
-          }
-
-          detail = { tabGroups };
+        if (!tabGroups) {
+          return;
         }
 
         const updateEvent = new CustomEvent("x-tabbycat-update", {
-          detail,
+          detail: {
+            tabGroups,
+          },
         });
         document.body.dispatchEvent(updateEvent);
       },
@@ -87,14 +94,14 @@ Alpine.data(
 
             await func(tabGroup.tabs.map(({ id }) => id));
             tabGroup.hidden = action === "HIDE";
-            browser.storage.sync.set({
+            await browser.storage.sync.set({
               tabGroups: JSON.stringify(tabGroups),
             });
 
             const activeTabs = await browser.tabs.query({ active: true });
             this.currentTabId = activeTabs[0].id;
 
-            await this.dispatchUpdateEvent({ tabGroups });
+            await this.dispatchUpdateEvent();
           }
         }
       },
@@ -123,7 +130,7 @@ Alpine.data(
               const activeTabs = await browser.tabs.query({ active: true });
               this.currentTabId = activeTabs[0].id;
 
-              await this.dispatchUpdateEvent({ tabGroups });
+              await this.dispatchUpdateEvent();
             }
           }
         }
@@ -147,7 +154,7 @@ Alpine.data(
               tabGroups: JSON.stringify(newTabGroups),
             });
 
-            await this.dispatchUpdateEvent({ tabGroups: newTabGroups });
+            await this.dispatchUpdateEvent();
           }
         }
       },
@@ -167,7 +174,7 @@ Alpine.data(
             tabGroups: JSON.stringify([]),
           });
 
-          await this.dispatchUpdateEvent({ tabGroups: [] });
+          await this.dispatchUpdateEvent();
         }
       },
 
@@ -245,7 +252,7 @@ Alpine.data(
           await browser.storage.sync.set({
             tabGroups: JSON.stringify(newTabGroups),
           });
-          await this.dispatchUpdateEvent({ tabGroups: newTabGroups });
+          await this.dispatchUpdateEvent();
           await updateTabTitle(currentTabId);
         }
       },
@@ -271,6 +278,11 @@ Alpine.data(
         return tab.favIconUrl;
       },
 
+      async getGroup(groupId: number): Promise<Maybe<TabGroup>> {
+        const tabGroups = await getTabGroups();
+        return tabGroups?.find((tabGroup) => tabGroup.groupId === groupId);
+      },
+
       async shouldIconBeDisabled(
         icon: ActionIcon,
         tabCount: number
@@ -291,15 +303,10 @@ Alpine.data(
         return false;
       },
 
-      async shouldAssignIconBeDisabled(tabGroup: TabGroup): Promise<boolean> {
-        const currentTab = (await browser.tabs.query({ active: true }))[0];
-        const currentTabId = currentTab?.id;
-
-        if (currentTabId) {
-          return tabGroup.tabs.map((tab) => tab.id).includes(currentTabId);
-        }
-
-        return false;
+      shouldAssignIconBeDisabled(tabGroup: TabGroup): boolean {
+        return (
+          tabGroup.tabs.map((tab) => tab.id) as ReadonlyArray<Maybe<number>>
+        ).includes(this.currentTabId);
       },
 
       async isTabVisible(tabId: number): Promise<boolean> {
@@ -309,6 +316,78 @@ Alpine.data(
 
       async isTabCurrent(tabId: number): Promise<boolean> {
         return this.currentTabId === tabId;
+      },
+
+      async editGroup(groupId: number): Promise<void> {
+        const tabGroup = await this.getGroup(groupId);
+
+        if (tabGroup) {
+          this.groupBeingEditedId = groupId;
+          this.inputtedName = tabGroup.groupName;
+          this.selectedColor = tabGroup.color;
+        }
+      },
+
+      selectColor(color: Color): void {
+        this.selectedColor = color;
+      },
+
+      getSaveIconClass(): string {
+        let className =
+          this.groupBeingEditedId === null
+            ? "fa-circle-plus"
+            : "fa-floppy-disk";
+
+        if (this.inputtedName.trim() === "") {
+          className += " icon-disabled";
+        }
+
+        return className;
+      },
+
+      async saveGroup(): Promise<void> {
+        let tabGroups = await getTabGroups();
+
+        if (!tabGroups) {
+          return;
+        }
+
+        if (this.groupBeingEditedId !== null) {
+          const tabGroup = tabGroups?.find(
+            (tabGroup) => tabGroup.groupId === this.groupBeingEditedId
+          );
+
+          if (!tabGroup) {
+            return;
+          }
+
+          tabGroup.groupName = this.inputtedName;
+          tabGroup.color = this.selectedColor;
+        } else {
+          const freeId = getFreeId(tabGroups);
+
+          const tabGroup = {
+            groupId: freeId,
+            groupName: this.inputtedName,
+            color: this.selectedColor,
+            hidden: false,
+            tabs: [],
+            updatesToGo: 0 as UpdateToGo,
+          };
+          tabGroups = [...tabGroups, tabGroup];
+        }
+
+        await browser.storage.sync.set({
+          tabGroups: JSON.stringify(tabGroups),
+        });
+        await this.dispatchUpdateEvent();
+        this.dismiss();
+      },
+
+      dismiss(): void {
+        this.groupBeingEditedId = null;
+        this.inputtedName = "";
+        this.selectedColor = Object.keys(colorsToDots)[0] as Color;
       },
     }) satisfies AlpineTabGroupsData
 );

@@ -6,8 +6,6 @@ export const colorsToDots = {
   "#0078d7": "🔵",
   "#886ce4": "🟣",
   "#8e562e": "🟤",
-  "#000000": "⚫",
-  "#f2f2f2": "⚪",
 } as const;
 
 export type Color = keyof typeof colorsToDots;

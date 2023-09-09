@@ -12,3 +12,7 @@ $popup-width: 30rem;
 @mixin icon-animation {
   transition: transform 0.5s ease-in-out;
 }
+
+@mixin disabled {
+  filter: brightness(50%);
+}

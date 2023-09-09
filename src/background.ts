@@ -7,7 +7,7 @@ import {
   type TabGroup,
   type UpdateToGo,
 } from "./models/Tabs";
-import { getTabGroups, getOptions, updateTabTitle } from "./common";
+import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "./common";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
@@ -22,7 +22,7 @@ class TabbyCat {
     TabbyCat.#isInternallyConstructing = false;
     this.#initContextMenuListener();
     this.#initTabListener();
-    this.#initOptionsListener();
+    this.#initStorageListener();
   }
 
   static getInstance(): TabbyCat {
@@ -254,17 +254,7 @@ class TabbyCat {
       ) &&
       tabUrl !== undefined
     ) {
-      let freeId = 1;
-      tabGroups
-        .sort((a, b) => a.groupId - b.groupId)
-        .every((group) => {
-          if (group.groupId === freeId) {
-            freeId++;
-            return true;
-          }
-
-          return false;
-        });
+      const freeId = getFreeId(tabGroups);
 
       const res = tabGroups.concat([
         {
@@ -406,13 +396,14 @@ class TabbyCat {
     );
   }
 
-  async #initOptionsListener(): Promise<void> {
+  async #initStorageListener(): Promise<void> {
     /* eslint-disable-next-line */
     /* @ts-ignore */
     browser.storage.sync.onChanged.addListener((changes: OptionsChange) => {
       const options = changes.options;
+      const tabGroups = changes.tabGroups;
 
-      if (options !== undefined) {
+      if (options !== undefined || tabGroups !== undefined) {
         this.#updateAllTabsTitles();
       }
     });

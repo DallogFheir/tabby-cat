@@ -60,3 +60,19 @@ export const updateTabTitle = async (tabId: number): Promise<void> => {
     }
   }
 };
+
+export const getFreeId = (tabGroups: TabGroup[]): number => {
+  let freeId = 1;
+  tabGroups
+    .sort((a, b) => a.groupId - b.groupId)
+    .every((group) => {
+      if (group.groupId === freeId) {
+        freeId++;
+        return true;
+      }
+
+      return false;
+    });
+
+  return freeId;
+};

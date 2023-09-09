@@ -5,11 +5,11 @@ import { colorsToDots, type Color, type TabGroup } from "./Tabs";
 
 export interface AlpineData {
   init(): void;
+  colorsToDots: typeof colorsToDots;
 }
 
 export interface AlpineOptionsData extends AlpineData {
   options: Options;
-  colorsToDots: typeof colorsToDots;
   isColorDisabled(color: Color): boolean;
   setOptions(
     optionName: keyof Options,
@@ -21,7 +21,10 @@ export interface AlpineOptionsData extends AlpineData {
 export interface AlpineTabGroupsData extends AlpineData {
   currentTabId: Maybe<number>;
   tabGroups: TabGroup[];
-  dispatchUpdateEvent(detail?: unknown): Promise<void>;
+  groupBeingEditedId: Maybe<number>;
+  inputtedName: string;
+  selectedColor: Color;
+  dispatchUpdateEvent(): Promise<void>;
   showHideGroup(groupId: number, action: TabGroupAction): Promise<void>;
   closeGroup(groupId: number): Promise<void>;
   removeGroup(groupId: number): Promise<void>;
@@ -33,8 +36,14 @@ export interface AlpineTabGroupsData extends AlpineData {
   assignCurrentTabToGroup(groupId: number): Promise<void>;
   getTabTitle(tabId: number): Promise<string>;
   getTabFavicon(tabId: number): Promise<Maybe<string>>;
+  getGroup(groupId: number): Promise<Maybe<TabGroup>>;
   shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
-  shouldAssignIconBeDisabled(tabGroup: TabGroup): Promise<boolean>;
+  shouldAssignIconBeDisabled(tabGroup: TabGroup): boolean;
   isTabVisible(tabId: number): Promise<boolean>;
   isTabCurrent(tabId: number): Promise<boolean>;
+  editGroup(groupId: number): Promise<void>;
+  selectColor(color: Color): void;
+  getSaveIconClass(): string;
+  saveGroup(): void;
+  dismiss(): void;
 }

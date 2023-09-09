@@ -35,7 +35,7 @@ main {
     cursor: pointer;
 
     &-disabled {
-      filter: brightness(50%);
+      @include vars.disabled;
     }
   }
 

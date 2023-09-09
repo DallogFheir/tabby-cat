@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TabbyCat</title>
     <link rel="stylesheet" href="popup.scss" />
+    <script
+      src="https://kit.fontawesome.com/09c641c070.js"
+      crossorigin="anonymous"
+    ></script>
     <script type="module" src="popup.ts"></script>
   </head>
   <body
@@ -15,13 +19,13 @@
       <h1>TabbyCat</h1>
       <div class="header-icons">
         <i
-          class="bi bi-trash3-fill icon icon-title"
+          class="fa-solid fa-trash icon icon-title"
           title="delete all groups"
           x-bind:class="tabGroups.length === 0 && 'icon-disabled'"
           @click="removeAllGroups()"
         ></i>
         <i
-          class="bi bi-gear-fill icon icon-title icon-settings"
+          class="fa-solid fa-gear icon icon-title icon-settings"
           title="settings"
           @click="browser.runtime.openOptionsPage()"
         ></i>
@@ -49,7 +53,7 @@
               <div class="tab-group-title-icons">
                 <template x-if="!tabGroup.hidden">
                   <i
-                    class="bi bi-eye-fill icon"
+                    class="fa-solid fa-eye icon"
                     title="hide all tabs in group"
                     x-bind:class="await shouldIconBeDisabled('HIDE', tabGroup.tabs.length) && 'icon-disabled'"
                     @click="showHideGroup(tabGroup.groupId, 'HIDE')"
@@ -57,32 +61,37 @@
                 </template>
                 <template x-if="tabGroup.hidden">
                   <i
-                    class="bi bi-eye-slash-fill icon"
+                    class="fa-solid fa-eye-slash icon"
                     title="show all tabs in group"
                     x-bind:class="await shouldIconBeDisabled('SHOW', tabGroup.tabs.length) && 'icon-disabled'"
                     @click="showHideGroup(tabGroup.groupId, 'SHOW')"
                   ></i>
                 </template>
                 <i
-                  class="bi bi-x-circle-fill icon"
+                  class="fa-solid fa-circle-xmark icon"
                   title="close all tabs in group"
                   @click="closeGroup(tabGroup.groupId)"
                 ></i>
                 <i
-                  class="bi bi-trash3-fill icon"
+                  class="fa-solid fa-trash icon"
                   title="delete group"
                   @click="removeGroup(tabGroup.groupId)"
                 ></i>
                 <i
-                  class="bi bi-folder-fill icon"
+                  class="fa-solid fa-folder-open icon"
                   title="open new tab in this group"
                   @click="openTabInGroup(tabGroup.groupId)"
                 ></i>
                 <i
-                  class="bi bi-bookmark-star-fill icon"
+                  class="fa-solid fa-bookmark icon"
                   title="assign current tab to this group"
-                  x-bind:class="await shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
+                  x-bind:class="shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
                   @click="assignCurrentTabToGroup(tabGroup.groupId)"
+                ></i>
+                <i
+                  class="fa-solid fa-pencil icon"
+                  title="edit group"
+                  @click="editGroup(tabGroup.groupId)"
                 ></i>
               </div>
             </div>
@@ -118,6 +127,52 @@
           </li>
         </template>
       </ul>
+      <form class="group-form">
+        <p class="group-form-title">
+          <span
+            x-text="groupBeingEditedId === null ? 'Add a group' : 'Editing group '"
+          ></span>
+          <template x-if="groupBeingEditedId !== null">
+            <span
+              x-bind:style="{ color: (await getGroup(groupBeingEditedId)).color }"
+              x-text="(await getGroup(groupBeingEditedId)).groupName"
+            ></span>
+          </template>
+        </p>
+        <label class="group-form-label">
+          Group name:
+          <input class="group-form-input" type="text" x-model="inputtedName" />
+        </label>
+        <label class="group-form-label">
+          Color:
+          <div>
+            <template
+              x-for="([color, dot], index) in Object.entries(colorsToDots)"
+            >
+              <span
+                class="group-form-color-indicator"
+                x-bind:class="selectedColor !== color && 'group-form-color-indicator-unselected'"
+                x-text="dot"
+                @click="selectColor(color)"
+              ></span>
+            </template>
+          </div>
+        </label>
+        <div class="group-form-icons">
+          <i
+            class="fa-solid fa-circle-xmark icon"
+            x-bind:class="groupBeingEditedId === null && 'icon-hidden'"
+            title="dismiss changes"
+            @click="dismiss()"
+          ></i>
+          <i
+            class="fa-solid icon"
+            x-bind:class="getSaveIconClass()"
+            title="save"
+            @click="saveGroup()"
+          ></i>
+        </div>
+      </form>
     </main>
   </body>
 </html>
