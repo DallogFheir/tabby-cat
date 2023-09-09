@@ -17,13 +17,15 @@ export interface Tab {
   url: string;
 }
 
+export type UpdateToGo = 0 | 1 | 2;
+
 export interface TabGroup {
   groupId: number;
   groupName: string;
   color: Color;
   hidden: boolean;
   tabs: Tab[];
-  updatesToGo: 0 | 1 | 2;
+  updatesToGo: UpdateToGo;
 }
 
 export type TabAction = "ADD" | "REMOVE";

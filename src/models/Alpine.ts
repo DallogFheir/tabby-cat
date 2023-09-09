@@ -1,7 +1,7 @@
 import type { Maybe } from "./Maybe";
 import type { Options } from "./Options";
 import type { ActionIcon, TabGroupAction } from "./Popup";
-import type { TabGroup } from "./Tabs";
+import { colorsToDots, type Color, type TabGroup } from "./Tabs";
 
 export interface AlpineData {
   init(): void;
@@ -9,10 +9,13 @@ export interface AlpineData {
 
 export interface AlpineOptionsData extends AlpineData {
   options: Options;
+  colorsToDots: typeof colorsToDots;
+  isColorDisabled(color: Color): boolean;
   setOptions(
     optionName: keyof Options,
     value: Options[keyof Options]
   ): Promise<void>;
+  toggleColor(color: Color): Promise<void>;
 }
 
 export interface AlpineTabGroupsData extends AlpineData {

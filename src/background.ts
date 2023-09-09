@@ -5,6 +5,7 @@ import {
   type Color,
   type TabAction,
   type TabGroup,
+  type UpdateToGo,
 } from "./models/Tabs";
 import { getTabGroups, getOptions, updateTabTitle } from "./common";
 
@@ -37,15 +38,15 @@ class TabbyCat {
     const tabs = await browser.tabs.query({});
     let groupId = 1;
     const colors: Color[] = [];
-    const tabGroups: TabGroup[] = tabs
+    const tabGroupsPromises: Promise<TabGroup>[] = tabs
       .filter(
         (tab) =>
           tab.id !== undefined &&
           tab.url !== undefined &&
           !this.#isSpecialTab(tab.url)
       )
-      .map((tab) => {
-        const color = this.#getColor(colors);
+      .map(async (tab) => {
+        const color = await this.#getColor(colors);
         colors.push(color);
 
         return {
@@ -54,9 +55,10 @@ class TabbyCat {
           color,
           hidden: false,
           tabs: [{ id: tab.id!, url: tab.url! }],
-          updatesToGo: 0,
+          updatesToGo: 0 as UpdateToGo,
         };
       });
+    const tabGroups = await Promise.all(tabGroupsPromises);
     await this.#saveTabGroups(tabGroups);
 
     await browser.storage.sync.set({
@@ -64,6 +66,7 @@ class TabbyCat {
         colorIndicator: "begin",
         removeEmptyGroups: true,
         saveSessions: true,
+        colors: Object.keys(colorsToDots) as Color[],
       } satisfies Options),
     });
 
@@ -110,8 +113,12 @@ class TabbyCat {
     });
   }
 
-  #getColor(currentColors: Color[]): Color {
-    const colors = Object.keys(colorsToDots) as (keyof typeof colorsToDots)[];
+  async #getColor(currentColors: Color[]): Promise<Color> {
+    const options = await getOptions();
+    const colors = options
+      ? options.colors
+      : (Object.keys(colorsToDots) as (keyof typeof colorsToDots)[]);
+
     let colorsToPick: Readonly<Color[]> = colors.filter(
       (color) => !currentColors.includes(color)
     );
@@ -263,7 +270,9 @@ class TabbyCat {
         {
           groupId: freeId,
           groupName: tab?.title ?? "New group",
-          color: this.#getColor(tabGroups.map((tabGroup) => tabGroup.color)),
+          color: await this.#getColor(
+            tabGroups.map((tabGroup) => tabGroup.color)
+          ),
           hidden: false,
           tabs: [{ id: tabId, url: tabUrl }],
           updatesToGo: tab.url === "about:newtab" ? 2 : 1,

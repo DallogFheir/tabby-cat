@@ -31,6 +31,14 @@ main {
 .options {
   list-style-type: none;
 
+  &-color-indicator {
+    cursor: pointer;
+
+    &-disabled {
+      filter: brightness(50%);
+    }
+  }
+
   & > li {
     font-size: 1.5em;
     padding-left: 1em;

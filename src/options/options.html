@@ -16,7 +16,21 @@
     <main>
       <ul class="options">
         <li>
-          color indicators 🔴🟠🟡🟢🔵🟣🟤⚫⚪
+          color indicators
+          <template x-for="[color, dot] in Object.entries(colorsToDots)">
+            <span
+              class="options-color-indicator"
+              x-bind:class="isColorDisabled(color) && 'options-color-indicator-disabled'"
+              x-text="dot"
+              @click="toggleColor(color)"
+            ></span>
+          </template>
+          <p class="options-label-subtext options-label-subcheckbox">
+            click on the indicators to enable/disable their colors
+          </p>
+          <p class="options-label-subtext options-label-subcheckbox">
+            this will only affect new groups
+          </p>
           <form>
             <label
               ><input
