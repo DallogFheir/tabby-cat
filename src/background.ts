@@ -23,6 +23,7 @@ class TabbyCat {
     this.#initContextMenuListener();
     this.#initTabListener();
     this.#initStorageListener();
+    this.#initCommandListener();
   }
 
   static getInstance(): TabbyCat {
@@ -405,6 +406,35 @@ class TabbyCat {
 
       if (options !== undefined || tabGroups !== undefined) {
         this.#updateAllTabsTitles();
+      }
+    });
+  }
+
+  #initCommandListener(): void {
+    browser.commands.onCommand.addListener(async (command) => {
+      switch (command) {
+        case "open-new-tab-in-group": {
+          const activeTab = (await browser.tabs.query({ active: true }))[0];
+          const activeTabId = activeTab.id;
+
+          if (activeTabId === undefined) {
+            return;
+          }
+
+          const newTab = await browser.tabs.create({ active: true });
+          const newTabId = newTab.id;
+
+          if (newTabId === undefined) {
+            return;
+          }
+
+          await this.#addToGroup(newTabId, activeTabId);
+
+          break;
+        }
+        default: {
+          throw new Error(`Invalid command: ${command}.`);
+        }
       }
     });
   }

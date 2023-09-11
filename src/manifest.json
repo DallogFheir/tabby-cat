@@ -31,6 +31,14 @@
     "page": "options/options.html",
     "open_in_tab": true
   },
+  "commands": {
+    "open-new-tab-in-group": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L"
+      },
+      "description": "Opens a new tab in the group of current tab."
+    }
+  },
   "permissions": ["menus", "storage", "tabHide", "tabs"],
   "content_security_policy": "script-src 'self' 'unsafe-eval' https://kit.fontawesome.com;",
   "browser_specific_settings": {

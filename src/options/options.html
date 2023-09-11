@@ -102,6 +102,27 @@
             </p>
           </label>
         </li>
+        <li>
+          <p>
+            keyboard shortcut to open a new tab in the group of the current tab:
+          </p>
+          <p class="options-shortcut">
+            <template x-for="key in shortcut">
+              <span>
+                <template x-if="key === '+'">
+                  <span>+</span>
+                </template>
+                <template x-if="key !== '+'">
+                  <kbd class="options-shortcut-key" x-text="key"></kbd>
+                </template>
+              </span>
+            </template>
+          </p>
+          <p class="options-label-subtext options-label-subshortcut">
+            to change the shortcut, go to <em>about:addons</em>, click the gear
+            icon in the top right, and go to <em>Manage Extension Shortcuts</em>
+          </p>
+        </li>
       </ul>
     </main>
   </body>

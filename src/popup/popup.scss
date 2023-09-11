@@ -62,7 +62,7 @@ ul {
     transform: rotate(40deg);
   }
 
-  &.#{&}-hidden {
+  &#{&}-hidden {
     display: none;
   }
 }

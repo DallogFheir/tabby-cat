@@ -10,6 +10,7 @@ export interface AlpineData {
 
 export interface AlpineOptionsData extends AlpineData {
   options: Options;
+  shortcut: string[];
   isColorDisabled(color: Color): boolean;
   setOptions(
     optionName: keyof Options,

@@ -24,7 +24,7 @@ header {
 
 main {
   margin: 0 auto;
-  padding: 2em;
+  padding: 1em;
   max-width: 720px;
 }
 
@@ -74,6 +74,11 @@ main {
       font-size: 0.8em;
     }
 
+    &-subshortcut {
+      margin-top: 0.8em;
+      font-size: 0.8em;
+    }
+
     &-link {
       text-decoration: none;
       color: color.adjust(vars.$color-text, $lightness: -30%);
@@ -90,5 +95,16 @@ main {
     bottom: 0.3em;
     height: 1.5em;
     width: 1.5em;
+  }
+
+  &-shortcut {
+    margin-top: 0.4em;
+    text-align: center;
+
+    &-key {
+      border: 1px solid vars.$color-text;
+      border-radius: 0.4em;
+      padding: 0.2em;
+    }
   }
 }

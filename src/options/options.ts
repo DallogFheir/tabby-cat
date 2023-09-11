@@ -15,13 +15,26 @@ Alpine.data(
         colors: Object.keys(colorsToDots) as Color[],
       },
       colorsToDots,
+      shortcut: ["Ctrl", "+", "Shift", "+", "L"],
 
       async init() {
         const options = await getOptions();
-
         if (options) {
           this.options = options;
         }
+
+        const commands = await browser.commands.getAll();
+        this.shortcut = commands
+          .find((command) => command.name === "open-new-tab-in-group")
+          ?.shortcut?.split(/(\+)/g) ?? ["Ctrl", "+", "Shift", "+", "L"];
+
+        /* eslint-disable-next-line */
+        /* @ts-ignore */
+        browser.commands.onChanged.addListener((changeInfo) => {
+          if (changeInfo.name === "open-new-tab-in-group") {
+            this.shortcut = changeInfo.newShortcut.split(/(\+)/g);
+          }
+        });
       },
 
       isColorDisabled(color: Color): boolean {
@@ -43,7 +56,7 @@ Alpine.data(
         this.options = newOptions;
       },
 
-      async toggleColor(color: Color) {
+      async toggleColor(color: Color): Promise<void> {
         const newColors = this.options.colors.includes(color)
           ? this.options.colors.filter((optionColor) => optionColor !== color)
           : [...this.options.colors, color];
