@@ -6,6 +6,7 @@ import {
   type TabAction,
   type TabGroup,
   type UpdateToGo,
+  type Tab,
 } from "./models/Tabs";
 import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "./common";
 
@@ -79,25 +80,39 @@ class TabbyCat {
 
     if (options) {
       if (options.saveSessions) {
-        const tabGroups = await getTabGroups();
-        this.#creatingTabs = true;
-        const createTabGroupsPromises =
-          tabGroups?.map(async (tabGroup) => {
-            const createTabsPromises = tabGroup.tabs.map(async (tab) => {
-              const newTab = await browser.tabs.create({
-                url: tab.url,
-              });
+        const defaultTabs = await browser.tabs.query({});
+        const defaultTabIds = defaultTabs
+          .map((tab) => tab.id)
+          .filter((tabId) => tabId !== undefined);
 
-              const newTabId = newTab.id;
-              if (newTabId) {
-                tab.id = newTabId;
-              }
+        const tabGroups = await getTabGroups();
+
+        if (!tabGroups) {
+          return;
+        }
+
+        const savedTabs = tabGroups.reduce(
+          (acc, tabGroup) => [...acc, ...tabGroup.tabs],
+          [] as Tab[]
+        );
+        if (savedTabs.length > 0) {
+          this.#creatingTabs = true;
+          const createTabsPromises = savedTabs.map(async (tab) => {
+            const newTab = await browser.tabs.create({
+              url: tab.url,
             });
 
-            return Promise.all(createTabsPromises);
-          }) ?? [];
-        await Promise.all(createTabGroupsPromises);
-        this.#creatingTabs = false;
+            const newTabId = newTab.id;
+            if (newTabId) {
+              tab.id = newTabId;
+            }
+          });
+
+          await Promise.all(createTabsPromises);
+          this.#creatingTabs = false;
+
+          await browser.tabs.remove(defaultTabIds as number[]);
+        }
       } else {
         await this.#saveTabGroups([]);
       }
