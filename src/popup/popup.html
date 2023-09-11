@@ -51,7 +51,7 @@
             >
               <span
                 class="tab-group-title-text"
-                x-bind:class="tabGroup.tabs.length === 0 ? '' : shown ? 'tab-group-title-text-active tab-group-shown' : 'tab-group-title-text-active tab-group-hidden'"
+                x-bind:class="tabGroup.tabs.length === 0 ? 'tab-group-empty' : shown ? 'tab-group-title-text-active tab-group-shown' : 'tab-group-title-text-active tab-group-hidden'"
                 x-text="tabGroup.groupName"
                 x-bind:title="tabGroup.groupName"
                 @click="shown = !shown"

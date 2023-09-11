@@ -2,6 +2,11 @@
 @use "../styles/vars";
 @import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap");
 
+@mixin tab-group-before {
+  display: inline-block;
+  width: 1.5em;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -77,16 +82,20 @@ ul {
 
   &-shown {
     &::before {
+      @include tab-group-before;
       content: "▼";
-      margin-right: 0.25em;
     }
   }
 
   &-hidden {
     &::before {
+      @include tab-group-before;
       content: "►";
-      margin-right: 0.25em;
     }
+  }
+
+  &-empty {
+    margin-left: 1.5em;
   }
 
   &-title {
