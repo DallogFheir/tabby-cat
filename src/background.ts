@@ -73,6 +73,8 @@ class TabbyCat {
     });
 
     await this.#updateAllTabsTitles();
+
+    browser.runtime.openOptionsPage();
   }
 
   async handleStartup(): Promise<void> {

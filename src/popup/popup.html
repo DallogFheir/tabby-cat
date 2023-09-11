@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TabbyCat</title>
     <link rel="stylesheet" href="popup.scss" />
-    <script
-      src="https://kit.fontawesome.com/09c641c070.js"
-      crossorigin="anonymous"
-    ></script>
     <script type="module" src="popup.ts"></script>
   </head>
   <body
@@ -18,23 +14,29 @@
     <header>
       <h1>TabbyCat</h1>
       <div class="header-icons">
-        <i
-          class="fa-solid fa-sort icon icon-title"
+        <img
+          src="../icons/fa-icons/arrow-down-wide-short-solid.svg"
+          alt="sort"
+          class="icon icon-title"
           title="sort tabs by groups"
           x-bind:class="(tabGroups.length === 0 || tabGroups.every((tabGroup) => tabGroup.tabs.length === 0)) && 'icon-disabled'"
           @click="sortTabs()"
-        ></i>
-        <i
-          class="fa-solid fa-trash icon icon-title"
+        />
+        <img
+          src="../icons/fa-icons/trash-solid.svg"
+          alt="delete"
+          class="icon icon-title"
           title="delete all groups"
           x-bind:class="tabGroups.length === 0 && 'icon-disabled'"
           @click="removeAllGroups()"
-        ></i>
-        <i
-          class="fa-solid fa-gear icon icon-title icon-settings"
+        />
+        <img
+          src="../icons/fa-icons/gear-solid.svg"
+          alt="settings"
+          class="icon icon-title icon-settings"
           title="settings"
           @click="browser.runtime.openOptionsPage()"
-        ></i>
+        />
       </div>
     </header>
     <hr />
@@ -58,47 +60,61 @@
               ></span>
               <div class="tab-group-title-icons">
                 <template x-if="!tabGroup.hidden">
-                  <i
-                    class="fa-solid fa-eye icon"
+                  <img
+                    src="../icons/fa-icons/eye-solid.svg"
+                    alt="hide"
+                    class="icon"
                     title="hide all tabs in group"
                     x-bind:class="await shouldIconBeDisabled('HIDE', tabGroup.tabs.length) && 'icon-disabled'"
                     @click="showHideGroup(tabGroup.groupId, 'HIDE')"
-                  ></i>
+                  />
                 </template>
                 <template x-if="tabGroup.hidden">
-                  <i
-                    class="fa-solid fa-eye-slash icon"
+                  <img
+                    src="../icons/fa-icons/eye-slash-solid.svg"
+                    alt="show"
+                    class="icon"
                     title="show all tabs in group"
                     x-bind:class="await shouldIconBeDisabled('SHOW', tabGroup.tabs.length) && 'icon-disabled'"
                     @click="showHideGroup(tabGroup.groupId, 'SHOW')"
-                  ></i>
+                  />
                 </template>
-                <i
-                  class="fa-solid fa-circle-xmark icon"
+                <img
+                  src="../icons/fa-icons/circle-xmark-solid.svg"
+                  alt="close"
+                  class="icon"
                   title="close all tabs in group"
                   @click="closeGroup(tabGroup.groupId)"
-                ></i>
-                <i
-                  class="fa-solid fa-trash icon"
+                />
+                <img
+                  src="../icons/fa-icons/trash-solid.svg"
+                  alt="delete"
+                  class="icon"
                   title="delete group"
                   @click="removeGroup(tabGroup.groupId)"
-                ></i>
-                <i
-                  class="fa-solid fa-folder-open icon"
+                />
+                <img
+                  src="../icons/fa-icons/folder-open-solid.svg"
+                  alt="open"
+                  class="icon"
                   title="open new tab in this group"
                   @click="openTabInGroup(tabGroup.groupId)"
-                ></i>
-                <i
-                  class="fa-solid fa-bookmark icon"
+                />
+                <img
+                  src="../icons/fa-icons/bookmark-solid.svg"
+                  alt="assign"
+                  class="icon"
                   title="assign current tab to this group"
                   x-bind:class="shouldAssignIconBeDisabled(tabGroup) && 'icon-disabled'"
                   @click="assignCurrentTabToGroup(tabGroup.groupId)"
-                ></i>
-                <i
-                  class="fa-solid fa-pencil icon"
+                />
+                <img
+                  src="../icons/fa-icons/pencil-solid.svg"
+                  alt="edit"
+                  class="icon"
                   title="edit group"
                   @click="editGroup(tabGroup.groupId)"
-                ></i>
+                />
               </div>
             </div>
             <ul class="tab-group-tabs" x-show="shown" x-transition>
@@ -165,18 +181,22 @@
           </div>
         </label>
         <div class="group-form-icons">
-          <i
-            class="fa-solid fa-circle-xmark icon"
+          <img
+            src="../icons/fa-icons/circle-xmark-solid.svg"
+            alt="dismiss"
+            class="icon"
             x-bind:class="groupBeingEditedId === null && 'icon-hidden'"
             title="dismiss changes"
             @click="dismiss()"
-          ></i>
-          <i
-            class="fa-solid icon"
-            x-bind:class="getSaveIconClass()"
-            title="save"
+          />
+          <img
+            x-bind:src="getSaveIconSrc()"
+            x-bind:alt="getSaveIconTitle()"
+            class="icon"
+            x-bind:class="inputtedName.trim() === '' && 'icon-disabled'"
+            x-bind:title="getSaveIconTitle()"
             @click="saveGroup()"
-          ></i>
+          />
         </div>
       </form>
     </main>

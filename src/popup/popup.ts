@@ -9,6 +9,8 @@ import {
 import type { TabGroupAction, ActionIcon } from "../models/Popup";
 import type { AlpineTabGroupsData } from "../models/Alpine";
 import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "../common";
+import CirclePlus from "../icons/fa-icons/circle-plus-solid.svg";
+import FloppyDisk from "../icons/fa-icons/floppy-disk-solid.svg";
 
 Alpine.data(
   "tabGroups",
@@ -375,17 +377,12 @@ Alpine.data(
         this.selectedColor = color;
       },
 
-      getSaveIconClass(): string {
-        let className =
-          this.groupBeingEditedId === null
-            ? "fa-circle-plus"
-            : "fa-floppy-disk";
+      getSaveIconSrc(): string {
+        return this.groupBeingEditedId === null ? CirclePlus : FloppyDisk;
+      },
 
-        if (this.inputtedName.trim() === "") {
-          className += " icon-disabled";
-        }
-
-        return className;
+      getSaveIconTitle(): string {
+        return this.groupBeingEditedId === null ? "add" : "save";
       },
 
       async saveGroup(): Promise<void> {

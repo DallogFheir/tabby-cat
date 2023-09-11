@@ -45,7 +45,8 @@ export interface AlpineTabGroupsData extends AlpineData {
   isTabCurrent(tabId: number): Promise<boolean>;
   editGroup(groupId: number): Promise<void>;
   selectColor(color: Color): void;
-  getSaveIconClass(): string;
+  getSaveIconSrc(): string;
+  getSaveIconTitle(): string;
   saveGroup(): void;
   dismiss(): void;
 }

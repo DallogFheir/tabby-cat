@@ -48,6 +48,7 @@ ul {
 
 .icon {
   cursor: pointer;
+  width: 1em;
   @include vars.icon-animation;
 
   &:hover {
@@ -60,10 +61,10 @@ ul {
   }
 
   &-title {
-    font-size: 1.5em;
+    width: 1.5em;
   }
 
-  &-settings:hover::before {
+  &-settings:hover {
     transform: rotate(40deg);
   }
 
