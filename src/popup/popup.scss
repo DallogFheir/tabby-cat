@@ -119,6 +119,9 @@ ul {
   }
 
   &-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
     width: calc(vars.$popup-width - 2rem - 1.3em);
     font-weight: normal;
     padding-left: 1.3em;
