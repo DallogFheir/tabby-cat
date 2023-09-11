@@ -43,6 +43,49 @@ Alpine.data(
         document.body.dispatchEvent(updateEvent);
       },
 
+      async sortTabs(): Promise<void> {
+        const tabs = await browser.tabs.query({});
+        const tabGroups = await getTabGroups();
+
+        if (!tabGroups) {
+          return;
+        }
+
+        const tabsWithGroups = tabs
+          .filter((tab) => tab.id !== undefined)
+          .map((tab) => {
+            const tabGroup = tabGroups.find((tabGroup) =>
+              tabGroup.tabs.map((tabInGroup) => tabInGroup.id).includes(tab.id!)
+            );
+
+            return {
+              id: tab.id!,
+              groupId: tabGroup?.groupId,
+            };
+          });
+
+        tabsWithGroups.sort((a, b) => {
+          if (a.groupId === undefined) {
+            return -1;
+          }
+
+          if (b.groupId === undefined) {
+            return 1;
+          }
+
+          return a.groupId - b.groupId;
+        });
+
+        const tabUpdatesPromises = tabsWithGroups.map(
+          async (tab, index) =>
+            await browser.tabs.move(tab.id, {
+              index,
+            })
+        );
+
+        await Promise.all(tabUpdatesPromises);
+      },
+
       async showHideGroup(
         groupId: number,
         action: TabGroupAction

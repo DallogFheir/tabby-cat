@@ -26,6 +26,7 @@ export interface AlpineTabGroupsData extends AlpineData {
   inputtedName: string;
   selectedColor: Color;
   dispatchUpdateEvent(): Promise<void>;
+  sortTabs(): Promise<void>;
   showHideGroup(groupId: number, action: TabGroupAction): Promise<void>;
   closeGroup(groupId: number): Promise<void>;
   removeGroup(groupId: number): Promise<void>;

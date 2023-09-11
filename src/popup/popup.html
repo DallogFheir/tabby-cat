@@ -19,6 +19,12 @@
       <h1>TabbyCat</h1>
       <div class="header-icons">
         <i
+          class="fa-solid fa-sort icon icon-title"
+          title="sort tabs by groups"
+          x-bind:class="(tabGroups.length === 0 || tabGroups.every((tabGroup) => tabGroup.tabs.length === 0)) && 'icon-disabled'"
+          @click="sortTabs()"
+        ></i>
+        <i
           class="fa-solid fa-trash icon icon-title"
           title="delete all groups"
           x-bind:class="tabGroups.length === 0 && 'icon-disabled'"
