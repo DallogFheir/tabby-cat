@@ -124,7 +124,10 @@ ul {
     padding-left: 1.3em;
 
     &-tab {
-      margin: 0.5em 0;
+      &:first-of-type {
+        margin-top: 0.5em;
+      }
+
       display: inline-flex;
       align-items: center;
       max-width: calc(100% - 2em);

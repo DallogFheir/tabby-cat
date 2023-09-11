@@ -109,6 +109,11 @@ class TabbyCat {
   }
 
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
+    const removeEmptyGroups = (await getOptions())?.removeEmptyGroups;
+    if (removeEmptyGroups) {
+      tabGroups = tabGroups.filter((tabGroup) => tabGroup.tabs.length > 0);
+    }
+
     await browser.storage.sync.set({
       tabGroups: JSON.stringify(tabGroups),
     });
@@ -139,9 +144,9 @@ class TabbyCat {
         ?.tabGroups as Maybe<string>) ?? "[]"
     ) as TabGroup[];
 
-    browser.menus.removeAll();
+    await browser.menus.removeAll();
 
-    if (!this.#isSpecialTab(tab.url)) {
+    if (!this.#isSpecialTab(tab.url) && tabGroups.length > 1) {
       tabGroups.forEach((group) => {
         browser.menus.create({
           id: `group-${group.groupId}`,
@@ -153,21 +158,9 @@ class TabbyCat {
           contexts: ["tab"],
         });
       });
-
-      browser.menus.create({
-        id: "separator",
-        type: "separator",
-        contexts: ["tab"],
-      });
-
-      browser.menus.create({
-        id: "new-group",
-        title: "New group...",
-        contexts: ["tab"],
-      });
     }
 
-    browser.menus.refresh();
+    await browser.menus.refresh();
   }
 
   async #handleMenuClick(
@@ -206,10 +199,12 @@ class TabbyCat {
 
       await this.#saveTabGroups(tabGroups);
     }
+
+    await browser.menus.removeAll();
   }
 
   #initContextMenuListener(): void {
-    browser.menus.onShown.addListener(this.#updateMenu);
+    browser.menus.onShown.addListener(this.#updateMenu.bind(this));
     browser.menus.onClicked.addListener(this.#handleMenuClick.bind(this));
   }
 
@@ -328,10 +323,7 @@ class TabbyCat {
         case "REMOVE": {
           const tabId = tabOrTabId as number;
 
-          const removeEmptyGroups =
-            (await getOptions())?.removeEmptyGroups ?? true;
-
-          let res = tabGroups.map(
+          const res = tabGroups.map(
             (tabGroup) =>
               ({
                 ...tabGroup,
@@ -340,9 +332,6 @@ class TabbyCat {
                 ),
               }) satisfies TabGroup
           );
-          if (removeEmptyGroups) {
-            res = res.filter((tabGroup) => tabGroup.tabs.length > 0);
-          }
 
           await this.#saveTabGroups(res);
 
