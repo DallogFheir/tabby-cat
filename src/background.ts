@@ -148,9 +148,11 @@ class TabbyCat {
 
     if (!this.#isSpecialTab(tab.url) && tabGroups.length > 1) {
       tabGroups.forEach((group) => {
+        const colorIndicator = colorsToDots[group.color];
+
         browser.menus.create({
           id: `group-${group.groupId}`,
-          title: group.groupName,
+          title: `${colorIndicator} ${group.groupName}`,
           type: "radio",
           checked:
             group.tabs.find((tabInGroup) => tabInGroup.id === tab.id) !==
@@ -160,6 +162,17 @@ class TabbyCat {
       });
     }
 
+    tabGroups.forEach((group) => {
+      const colorIndicator = colorsToDots[group.color];
+
+      browser.menus.create({
+        id: `open-group-${group.groupId}`,
+        title: `Open in ${colorIndicator} ${group.groupName}`,
+        type: "normal",
+        contexts: ["link"],
+      });
+    });
+
     await browser.menus.refresh();
   }
 
@@ -168,38 +181,55 @@ class TabbyCat {
     tab: browser.tabs.Tab
   ): Promise<void> {
     const newGroupId = Number(
-      String(info.menuItemId).match(/^group-(\d+)$/)?.[1] ?? NaN
+      String(info.menuItemId).match(/^(?:open-)?group-(\d+)$/)?.[1] ?? NaN
     );
-    const tabId = tab.id;
-    const tabUrl = tab.url;
     const tabGroups = await getTabGroups();
-
-    const oldGroup = tabGroups?.find((tabGroup) =>
-      (tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]).includes(
-        tabId
-      )
-    );
     const newGroup = tabGroups?.find(
       (tabGroup) => tabGroup.groupId === newGroupId
     );
 
-    if (
-      newGroupId &&
-      tabGroups &&
-      tabId !== undefined &&
-      tabUrl !== undefined &&
-      oldGroup &&
-      newGroup
-    ) {
+    if (!tabGroups || newGroup === undefined) {
+      return;
+    }
+
+    if (String(info.menuItemId).startsWith("open-group-")) {
+      const linkUrl = info.linkUrl;
+
+      if (linkUrl === undefined) {
+        return;
+      }
+
+      const newTab = await browser.tabs.create({
+        url: info.linkUrl,
+      });
+      const newTabId = newTab.id;
+
+      if (newTabId === undefined) {
+        return;
+      }
+
+      newGroup.tabs.push({ id: newTabId, url: linkUrl });
+    } else {
+      const tabId = tab.id;
+      const tabUrl = tab.url;
+      const oldGroup = tabGroups?.find((tabGroup) =>
+        (tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]).includes(
+          tabId
+        )
+      );
+
+      if (tabId === undefined || tabUrl === undefined || !oldGroup) {
+        return;
+      }
+
       oldGroup.tabs = oldGroup.tabs.filter(
         (tabInGroup) => tabInGroup.id !== tabId
       );
 
       newGroup.tabs.push({ id: tabId, url: tabUrl });
-
-      await this.#saveTabGroups(tabGroups);
     }
 
+    await this.#saveTabGroups(tabGroups);
     await browser.menus.removeAll();
   }
 
