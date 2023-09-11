@@ -265,7 +265,7 @@ Alpine.data(
           return "New tab";
         }
 
-        const dots = ["🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "🟤", "⚫", "⚪"];
+        const dots = Object.values(colorsToDots);
         return dots.some((dot) => title.startsWith(dot))
           ? title.slice(2)
           : dots.some((dot) => title.endsWith(dot))
