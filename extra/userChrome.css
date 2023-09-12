@@ -1,44 +1,39 @@
-tab.tabbrowser-tab[label$="🔴"] vbox.tab-background {
-  background-color: #e8122480 !important;
+tab.tabbrowser-tab vbox.tab-background {
   background-image: none !important;
+}
+
+tab.tabbrowser-tab[label$="🔴"] vbox.tab-background {
+  background-color: rgba(232, 18, 36, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🟠"] vbox.tab-background {
-  background-color: #f7630c80 !important;
-  background-image: none !important;
+  background-color: rgba(247, 99, 12, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🟡"] vbox.tab-background {
-  background-color: #fff10080 !important;
-  background-image: none !important;
+  background-color: rgba(255, 241, 0, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🟢"] vbox.tab-background {
-  background-color: #16c60c80 !important;
-  background-image: none !important;
+  background-color: rgba(22, 198, 12, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🔵"] vbox.tab-background {
-  background-color: #0078d780 !important;
-  background-image: none !important;
+  background-color: rgba(0, 120, 215, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🟣"] vbox.tab-background {
-  background-color: #886ce480 !important;
-  background-image: none !important;
+  background-color: rgba(136, 108, 228, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="🟤"] vbox.tab-background {
-  background-color: #8e562e80 !important;
-  background-image: none !important;
+  background-color: rgba(142, 86, 46, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="⚫"] vbox.tab-background {
-  background-color: #38383880 !important;
-  background-image: none !important;
+  background-color: rgba(56, 56, 56, 80) !important;
 }
 
 tab.tabbrowser-tab[label$="⚪"] vbox.tab-background {
-  background-color: #f2f2f280 !important;
-  background-image: none !important;
+  background-color: rgba(242, 242, 242, 80) !important;
 }
