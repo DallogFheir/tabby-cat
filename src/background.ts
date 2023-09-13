@@ -8,7 +8,13 @@ import {
   type UpdateToGo,
   type Tab,
 } from "./models/Tabs";
-import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "./common";
+import {
+  getTabGroups,
+  getOptions,
+  updateTabTitle,
+  updateTabFavicon,
+  getFreeId,
+} from "./common";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
@@ -356,13 +362,17 @@ class TabbyCat {
             }
 
             const tabId = tab.id;
-            if (tabId) {
-              if (tab.openerTabId === undefined) {
-                await this.#createNewGroup(tabId);
-              } else {
-                await this.#addToGroup(tabId, tab.openerTabId);
-              }
+            if (tabId === undefined) {
+              return;
             }
+
+            if (tab.openerTabId === undefined) {
+              await this.#createNewGroup(tabId);
+            } else {
+              await this.#addToGroup(tabId, tab.openerTabId);
+            }
+
+            await updateTabFavicon(tabId);
           }
 
           break;
@@ -395,7 +405,8 @@ class TabbyCat {
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
       async (tabId) => {
-        const { status, title, url } = await browser.tabs.get(tabId);
+        const { status, title, url, favIconUrl } =
+          await browser.tabs.get(tabId);
 
         if (status === "complete" && !this.#isSpecialTab(url)) {
           const tab = await browser.tabs.get(tabId);
@@ -413,6 +424,7 @@ class TabbyCat {
             }
           }
         }
+
         if (
           status === "complete" &&
           title &&
@@ -421,11 +433,15 @@ class TabbyCat {
           await this.#updateGroupName(tabId, title);
           await updateTabTitle(tabId);
         }
+
+        if (status === "complete" && favIconUrl) {
+          await updateTabFavicon(tabId);
+        }
       },
       /* eslint-disable-next-line */
       /* @ts-ignore */
       {
-        properties: ["status", "title", "url"],
+        properties: ["status", "title", "url", "favIconUrl"],
       }
     );
     browser.tabs.onRemoved.addListener((tabId) =>

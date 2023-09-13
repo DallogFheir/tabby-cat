@@ -11,23 +11,25 @@ const hexToRgb = (hexColor) => {
   return rgb.join(", ");
 };
 
-const colorsToDots = {
-  "#e81224": "🔴",
-  "#f7630c": "🟠",
-  "#fff100": "🟡",
-  "#16c60c": "🟢",
-  "#0078d7": "🔵",
-  "#886ce4": "🟣",
-  "#8e562e": "🟤",
-  "#383838": "⚫",
-  "#f2f2f2": "⚪",
-};
+const colors = [
+  "#e81224",
+  "#f7630c",
+  "#fff100",
+  "#16c60c",
+  "#0078d7",
+  "#886ce4",
+  "#8e562e",
+  "#383838",
+  "#f2f2f2",
+];
 
-const rules = Object.entries(colorsToDots).map(
-  ([color, dot]) =>
-    `tab.tabbrowser-tab[label$="${dot}"] vbox.tab-background {\n  background-color: rgba(${hexToRgb(
+const rules = colors.map(
+  (color) =>
+    `tab.tabbrowser-tab[image*="x-tabby-cat=${color.slice(
+      1
+    )}"] vbox.tab-background {\n  background-color: rgba(${hexToRgb(
       color
-    )}, 80) !important;\n}`
+    )}, 0.5) !important;\n}`
 );
 
 const stylesheet =
@@ -35,4 +37,4 @@ const stylesheet =
   rules.join("\n\n") +
   "\n";
 
-fs.writeFile("extra/userChrome.css", stylesheet, "utf-8");
+fs.writeFile("extras/userChrome.css", stylesheet, "utf-8");

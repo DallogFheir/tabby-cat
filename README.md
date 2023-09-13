@@ -6,7 +6,7 @@ A Firefox extension to easily organize your tabs.
 
 ## Usage
 
-Each new tab is opened in a new group by default. If you want to open a new tab in the same group as the currently active tab, you can use the keyboard shortcut (which is `Ctrl` + `Shift` + `L` by default; you can change it in the extension settings).
+Each new empty tab is opened in a new group by default. If you want to open a new tab in the same group as the currently active tab, you can use the keyboard shortcut (which is `Ctrl` + `Shift` + `L` by default; you can change it in the extension settings). Opening a new tab from a link opens the new tab in the same group as the tab which contains the link.
 
 ### Popup
 
@@ -46,7 +46,7 @@ On the options page, you can edit the following settings:
 
   - click on the colorful dots to enable/disable their colors to be automatically picked at random for new groups; this will not affect already existing groups and will still allow you to choose all the colors manually
 
-  - to better visualize which tab belongs to which group, you can enable color indicators to be added to tabs' titles, either at the beginning of the title or at the end (the latter is intended to be used with custom browser stylesheet, [see below](#tab-colors)); this will not affect "privileged" pages, such as _about:newtab_, *https://accounts.firefox.com* or _moz-extension://_ pages
+  - to better visualize which tab belongs to which group, you can enable color indicators to be added to tabs' titles, either at the beginning of the title or at the end; this will not affect "privileged" pages, such as _about:newtab_, *https://accounts.firefox.com* or _moz-extension://_ pages; for the possibility of coloring the entire tab, [see below](#tab-colors)
 
 - **automatically remove empty groups** - speaks for itself
 
@@ -64,7 +64,7 @@ There are 2 context menus provided by TabbyCat:
 
 ## Tab colors
 
-Unfortunately, WebExtensions API does not support changing the color of individual tabs. To circumvent this, you can use a custom browser stylesheet:
+Unfortunately, WebExtensions API does not support changing the color of individual tabs. To circumvent this, TabbyCat adds a special attribute to tabs' favicons, which can then be targeted with a custom browser stylesheet. To enable it, do the following:
 
 1. Enter `about:config` in Firefox's address bar, accept the risk, search for `toolkit.legacyUserProfileCustomizations.stylesheets` and change its value to `true`.
 
