@@ -501,5 +501,5 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
 });
 browser.runtime.onStartup.addListener(async () => {
   const tabbyCat = TabbyCat.getInstance();
-  tabbyCat.handleStartup();
+  await tabbyCat.handleStartup();
 });
