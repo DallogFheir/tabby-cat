@@ -1,0 +1,39 @@
+tab.tabbrowser-tab vbox.tab-background {
+  background-image: none !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=e81224"] vbox.tab-background {
+  background-color: rgba(232, 18, 36, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=f7630c"] vbox.tab-background {
+  background-color: rgba(247, 99, 12, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=fff100"] vbox.tab-background {
+  background-color: rgba(255, 241, 0, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=16c60c"] vbox.tab-background {
+  background-color: rgba(22, 198, 12, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=0078d7"] vbox.tab-background {
+  background-color: rgba(0, 120, 215, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=886ce4"] vbox.tab-background {
+  background-color: rgba(136, 108, 228, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=8e562e"] vbox.tab-background {
+  background-color: rgba(142, 86, 46, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=383838"] vbox.tab-background {
+  background-color: rgba(56, 56, 56, 0.5) !important;
+}
+
+tab.tabbrowser-tab[image*="x-tabby-cat=f2f2f2"] vbox.tab-background {
+  background-color: rgba(242, 242, 242, 0.5) !important;
+}

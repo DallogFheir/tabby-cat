@@ -27,3 +27,10 @@ export interface TabGroup {
 }
 
 export type TabAction = "ADD" | "REMOVE";
+
+export type ContentScriptChangeAction = "TITLE" | "FAVICON";
+
+export interface ContentScriptMessage {
+  changeAction: ContentScriptChangeAction;
+  msg: string;
+}
