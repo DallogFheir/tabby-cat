@@ -484,7 +484,10 @@ class TabbyCat {
             return;
           }
 
-          const newTab = await browser.tabs.create({ active: true });
+          const newTab = await browser.tabs.create({
+            active: true,
+            openerTabId: activeTabId,
+          });
           const newTabId = newTab.id;
 
           if (newTabId === undefined) {
