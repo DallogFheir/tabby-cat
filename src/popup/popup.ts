@@ -190,14 +190,14 @@ Alpine.data(
           );
 
           if (tabGroup) {
-            await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
-
             const newTabGroups = tabGroups.filter(
               (oldTabGroup) => oldTabGroup !== tabGroup
             );
             await browser.storage.sync.set({
               tabGroups: JSON.stringify(newTabGroups),
             });
+
+            await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
 
             await this.dispatchUpdateEvent();
           }
@@ -213,11 +213,10 @@ Alpine.data(
             return tabIdsAcc;
           }, [] as number[]);
 
-          await browser.tabs.remove(tabIds);
-
           await browser.storage.sync.set({
             tabGroups: JSON.stringify([]),
           });
+          await browser.tabs.remove(tabIds);
 
           await this.dispatchUpdateEvent();
         }
