@@ -91,7 +91,7 @@ export const updateTabFavicon = async (tabId: number): Promise<void> => {
     const tab = await browser.tabs.get(tabId);
     const faviconUrl = tab.favIconUrl;
 
-    if (faviconUrl === undefined || faviconUrl.includes("x-tabby-cat")) {
+    if (faviconUrl === undefined) {
       return;
     }
 
@@ -116,7 +116,9 @@ export const updateTabFavicon = async (tabId: number): Promise<void> => {
       dataUrl = canvas.toDataURL();
     }
 
-    const [firstPart, ...rest] = dataUrl.split(";");
+    const [firstPart, ...rest] = dataUrl
+      .split(";")
+      .filter((part) => !part.startsWith("x-tabby-cat="));
     const newDataUrl = `${firstPart};x-tabby-cat=${tabGroup.color.slice(
       1
     )};${rest.join(";")}`;

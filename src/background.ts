@@ -119,6 +119,7 @@ class TabbyCat {
           await Promise.all(createTabsPromises);
           this.#creatingTabs = false;
 
+          await this.#saveTabGroups(tabGroups);
           await browser.tabs.remove(defaultTabIds as number[]);
         }
       } else {
@@ -232,6 +233,8 @@ class TabbyCat {
       }
 
       newGroup.tabs.push({ id: newTabId, url: linkUrl });
+
+      await this.#saveTabGroups(tabGroups);
     } else {
       const tabId = tab.id;
       const tabUrl = tab.url;
@@ -250,9 +253,11 @@ class TabbyCat {
       );
 
       newGroup.tabs.push({ id: tabId, url: tabUrl });
+
+      await this.#saveTabGroups(tabGroups);
+      await updateTabFavicon(tabId);
     }
 
-    await this.#saveTabGroups(tabGroups);
     await browser.menus.removeAll();
   }
 
@@ -408,28 +413,34 @@ class TabbyCat {
         const { status, title, url, favIconUrl } =
           await browser.tabs.get(tabId);
 
-        if (status === "complete" && !this.#isSpecialTab(url)) {
+        if (status === "complete" && url && !this.#isSpecialTab(url)) {
           const tab = await browser.tabs.get(tabId);
           const tabGroups = await getTabGroups();
 
-          if (
-            tabGroups?.every(
-              (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
-            )
-          ) {
+          const tabsTabGroup = tabGroups?.find((tabGroup) =>
+            tabGroup.tabs.map(({ id }) => id).includes(tabId)
+          );
+          if (tabsTabGroup === undefined) {
             if (tab.openerTabId === undefined) {
               await this.#createNewGroup(tabId);
             } else {
               await this.#addToGroup(tabId, tab.openerTabId);
             }
+          } else {
+            const tabInTabGroup = tabsTabGroup.tabs.find(
+              ({ id }) => id === tabId
+            );
+
+            if (!tabInTabGroup || !tabGroups) {
+              return;
+            }
+
+            tabInTabGroup.url = url;
+            await this.#saveTabGroups(tabGroups);
           }
         }
 
-        if (
-          status === "complete" &&
-          title &&
-          Object.values(colorsToDots).every((dot) => !title.startsWith(dot))
-        ) {
+        if (status === "complete" && title) {
           await this.#updateGroupName(tabId, title);
           await updateTabTitle(tabId);
         }
