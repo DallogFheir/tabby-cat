@@ -232,7 +232,10 @@ Alpine.data(
           );
 
           if (tabGroup) {
-            tabGroup.tabs.push({ id: tab.id, url: tab.url ?? "New Tab" });
+            tabGroup.tabs.push({
+              id: tab.id,
+              url: tab.url ?? "New Tab",
+            });
 
             await browser.storage.sync.set({
               tabGroups: JSON.stringify(tabGroups),

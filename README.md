@@ -50,8 +50,6 @@ On the options page, you can edit the following settings:
 
 - **automatically remove empty groups** - speaks for itself
 
-- **save sessions** - if enabled, all tabs will be saved when you close Firefox, and will be reopened when you open it again
-
 - **keyboard shortcut** - shortcut to open a new tab in the group of the currently active tab; to change this, go to _about:addons_, click the gear icon in the top right and go to _Manage Extension Shortcuts_
 
 ### Context menus

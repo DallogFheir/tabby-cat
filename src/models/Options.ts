@@ -5,7 +5,6 @@ export type ColorIndicatorOption = "off" | "begin" | "end";
 export interface Options {
   colorIndicator: ColorIndicatorOption;
   removeEmptyGroups: boolean;
-  saveSessions: boolean;
   colors: Color[];
 }
 

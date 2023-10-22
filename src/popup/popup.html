@@ -119,31 +119,33 @@
             </div>
             <ul class="tab-group-tabs" x-show="shown" x-transition>
               <template x-for="tab in tabGroup.tabs" :key="tab.id">
-                <li
-                  class="tab-group-tabs-tab"
-                  x-bind:class="((await isTabCurrent(tab.id)) || tabGroup.hidden) && 'tab-group-tabs-tab-non-interactive'"
-                  x-bind:class="(await isTabVisible(tab.id)) && 'tab-groups-tabs-tab-visible'"
-                  x-data="{ favicon: null }"
-                  x-init="favicon = await getTabFavicon(tab.id)"
-                  x-bind:title="await getTabTitle(tab.id)"
-                  @mouseover="!tabGroup.hidden && peekTab(tab.id)"
-                  @mouseout="!tabGroup.hidden && stopPeek()"
-                  @click="!tabGroup.hidden && goToTab(tab.id)"
-                >
-                  <template x-if="favicon">
-                    <img
-                      class="tab-group-tabs-tab-favicon"
-                      x-bind:src="favicon"
-                    />
-                  </template>
-                  <template x-if="!favicon">
-                    <i class="bi bi-globe2 tab-group-tabs-tab-favicon"></i>
-                  </template>
-                  <span
-                    class="tab-group-tabs-tab-title"
-                    x-text="await getTabTitle(tab.id)"
-                  ></span>
-                </li>
+                <template x-if="!tab.isDummy">
+                  <li
+                    class="tab-group-tabs-tab"
+                    x-bind:class="((await isTabCurrent(tab.id)) || tabGroup.hidden) && 'tab-group-tabs-tab-non-interactive'"
+                    x-bind:class="(await isTabVisible(tab.id)) && 'tab-groups-tabs-tab-visible'"
+                    x-data="{ favicon: null }"
+                    x-init="favicon = await getTabFavicon(tab.id)"
+                    x-bind:title="await getTabTitle(tab.id)"
+                    @mouseover="!tabGroup.hidden && peekTab(tab.id)"
+                    @mouseout="!tabGroup.hidden && stopPeek()"
+                    @click="!tabGroup.hidden && goToTab(tab.id)"
+                  >
+                    <template x-if="favicon">
+                      <img
+                        class="tab-group-tabs-tab-favicon"
+                        x-bind:src="favicon"
+                      />
+                    </template>
+                    <template x-if="!favicon">
+                      <i class="bi bi-globe2 tab-group-tabs-tab-favicon"></i>
+                    </template>
+                    <span
+                      class="tab-group-tabs-tab-title"
+                      x-text="await getTabTitle(tab.id)"
+                    ></span>
+                  </li>
+                </template>
               </template>
             </ul>
           </li>

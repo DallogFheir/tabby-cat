@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0
+
+- removed Save Session setting (use Firefox's _Open previous windows and tabs_ option instead)
+- fixed extension not creating _&lt;link>_ elements correctly when they were not present
+
 ## v1.4
 
 - further fixes for Save Session
