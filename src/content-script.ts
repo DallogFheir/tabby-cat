@@ -12,6 +12,7 @@ const changeFavicon = (faviconDataUrl: string): void => {
 
   if (faviconLink == null) {
     faviconLink = document.createElement("link");
+    faviconLink.rel = "icon";
     document.head.append(faviconLink);
   }
 
