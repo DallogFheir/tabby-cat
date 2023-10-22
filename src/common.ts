@@ -119,9 +119,9 @@ export const updateTabFavicon = async (tabId: number): Promise<void> => {
     const [firstPart, ...rest] = dataUrl
       .split(";")
       .filter((part) => !part.startsWith("x-tabby-cat="));
-    const newDataUrl = `${firstPart};x-tabby-cat=${tabGroup.color.slice(
-      1
-    )};${rest.join(";")}`;
+    const newDataUrl = `${firstPart};x-tabby-cat=${tabGroup.color.slice(1)}/${
+      tabGroup.groupId
+    };${rest.join(";")}`;
 
     browser.tabs.sendMessage(tabId, {
       changeAction: "FAVICON",

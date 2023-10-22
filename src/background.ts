@@ -15,17 +15,17 @@ import {
   updateTabFavicon,
   getFreeId,
 } from "./common";
+import { Lock } from "./lib/lock";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
   static #instance: Maybe<TabbyCat>;
-  #creatingTabs = false;
+  #lock = new Lock();
 
   constructor() {
     if (!TabbyCat.#isInternallyConstructing) {
       throw new TypeError("Use TabbyCat.initialize() instead.");
     }
-
     TabbyCat.#isInternallyConstructing = false;
     this.#initContextMenuListener();
     this.#initTabListener();
@@ -57,13 +57,16 @@ class TabbyCat {
         const color = await this.#getColor(colors);
         colors.push(color);
 
+        const dummyTabId = await this.#createDummyTab();
+
         return {
           groupId: groupId++,
           groupName: tab?.title ?? "New group",
           color,
           hidden: false,
-          tabs: [{ id: tab.id!, url: tab.url! }],
+          tabs: [{ id: tab.id!, url: tab.url!, isDummy: false }],
           updatesToGo: 0 as UpdateToGo,
+          dummyTabId,
         };
       });
     const tabGroups = await Promise.all(tabGroupsPromises);
@@ -73,7 +76,6 @@ class TabbyCat {
       options: JSON.stringify({
         colorIndicator: "begin",
         removeEmptyGroups: true,
-        saveSessions: true,
         colors: Object.keys(colorsToDots) as Color[],
       } satisfies Options),
     });
@@ -84,47 +86,44 @@ class TabbyCat {
   }
 
   async handleStartup(): Promise<void> {
-    const options = await getOptions();
+    await this.#lock.acquire();
+    try {
+      const tabs = await browser.tabs.query({});
+      const tabGroups = await getTabGroups();
 
-    if (options) {
-      if (options.saveSessions) {
-        const defaultTabs = await browser.tabs.query({});
-        const defaultTabIds = defaultTabs
-          .map((tab) => tab.id)
-          .filter((tabId) => tabId !== undefined);
+      if (!tabGroups) {
+        return;
+      }
 
-        const tabGroups = await getTabGroups();
+      const emptiedTabGroups = tabGroups.map((tabGroup) => ({
+        ...tabGroup,
+        tabs: [] as Tab[],
+      }));
 
-        if (!tabGroups) {
+      tabs.forEach((tab) => {
+        const groupIdMatch = tab.favIconUrl?.match(
+          /x-tabby-cat=(e81224|f7630c|fff100|16c60c|0078d7|886ce4|8e562e)\/(\d+)/
+        );
+
+        if (!groupIdMatch || !tab.id || !tab.url) {
           return;
         }
 
-        const savedTabs = tabGroups.reduce(
-          (acc, tabGroup) => [...acc, ...tabGroup.tabs],
-          [] as Tab[]
+        const groupId = Number(groupIdMatch[2]);
+        const tabGroup = emptiedTabGroups.find(
+          (tabGroup) => tabGroup.groupId === groupId
         );
-        if (savedTabs.length > 0) {
-          this.#creatingTabs = true;
-          const createTabsPromises = savedTabs.map(async (tab) => {
-            const newTab = await browser.tabs.create({
-              url: tab.url,
-            });
 
-            const newTabId = newTab.id;
-            if (newTabId) {
-              tab.id = newTabId;
-            }
-          });
-
-          await Promise.all(createTabsPromises);
-          this.#creatingTabs = false;
-
-          await this.#saveTabGroups(tabGroups);
-          await browser.tabs.remove(defaultTabIds as number[]);
+        if (!tabGroup) {
+          return;
         }
-      } else {
-        await this.#saveTabGroups([]);
-      }
+
+        tabGroup.tabs.push({ id: tab.id, url: tab.url });
+      });
+
+      await this.#saveTabGroups(emptiedTabGroups);
+    } finally {
+      this.#lock.release();
     }
   }
 
@@ -204,61 +203,67 @@ class TabbyCat {
     info: browser.menus.OnClickData,
     tab: browser.tabs.Tab
   ): Promise<void> {
-    const newGroupId = Number(
-      String(info.menuItemId).match(/^(?:open-)?group-(\d+)$/)?.[1] ?? NaN
-    );
-    const tabGroups = await getTabGroups();
-    const newGroup = tabGroups?.find(
-      (tabGroup) => tabGroup.groupId === newGroupId
-    );
+    await this.#lock.acquire();
 
-    if (!tabGroups || newGroup === undefined) {
-      return;
-    }
-
-    if (String(info.menuItemId).startsWith("open-group-")) {
-      const linkUrl = info.linkUrl;
-
-      if (linkUrl === undefined) {
-        return;
-      }
-
-      const newTab = await browser.tabs.create({
-        url: info.linkUrl,
-      });
-      const newTabId = newTab.id;
-
-      if (newTabId === undefined) {
-        return;
-      }
-
-      newGroup.tabs.push({ id: newTabId, url: linkUrl });
-
-      await this.#saveTabGroups(tabGroups);
-    } else {
-      const tabId = tab.id;
-      const tabUrl = tab.url;
-      const oldGroup = tabGroups?.find((tabGroup) =>
-        (tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]).includes(
-          tabId
-        )
+    try {
+      const newGroupId = Number(
+        String(info.menuItemId).match(/^(?:open-)?group-(\d+)$/)?.[1] ?? NaN
+      );
+      const tabGroups = await getTabGroups();
+      const newGroup = tabGroups?.find(
+        (tabGroup) => tabGroup.groupId === newGroupId
       );
 
-      if (tabId === undefined || tabUrl === undefined || !oldGroup) {
+      if (!tabGroups || newGroup === undefined) {
         return;
       }
 
-      oldGroup.tabs = oldGroup.tabs.filter(
-        (tabInGroup) => tabInGroup.id !== tabId
-      );
+      if (String(info.menuItemId).startsWith("open-group-")) {
+        const linkUrl = info.linkUrl;
 
-      newGroup.tabs.push({ id: tabId, url: tabUrl });
+        if (linkUrl === undefined) {
+          return;
+        }
 
-      await this.#saveTabGroups(tabGroups);
-      await updateTabFavicon(tabId);
+        const newTab = await browser.tabs.create({
+          url: info.linkUrl,
+        });
+        const newTabId = newTab.id;
+
+        if (newTabId === undefined) {
+          return;
+        }
+
+        newGroup.tabs.push({ id: newTabId, url: linkUrl });
+
+        await this.#saveTabGroups(tabGroups);
+      } else {
+        const tabId = tab.id;
+        const tabUrl = tab.url;
+        const oldGroup = tabGroups?.find((tabGroup) =>
+          (
+            tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]
+          ).includes(tabId)
+        );
+
+        if (tabId === undefined || tabUrl === undefined || !oldGroup) {
+          return;
+        }
+
+        oldGroup.tabs = oldGroup.tabs.filter(
+          (tabInGroup) => tabInGroup.id !== tabId
+        );
+
+        newGroup.tabs.push({ id: tabId, url: tabUrl });
+
+        await this.#saveTabGroups(tabGroups);
+        await updateTabFavicon(tabId);
+      }
+
+      await browser.menus.removeAll();
+    } finally {
+      this.#lock.release();
     }
-
-    await browser.menus.removeAll();
   }
 
   #initContextMenuListener(): void {
@@ -285,6 +290,8 @@ class TabbyCat {
           }
         }
       }
+
+      await this.#saveTabGroups(tabGroups);
     }
   }
 
@@ -294,6 +301,16 @@ class TabbyCat {
       .filter((tab) => tab.id !== undefined)
       .map(({ id }) => updateTabTitle(id as number));
     await Promise.all(updateTitlesPromises);
+  }
+
+  async #createDummyTab(): Promise<number> {
+    const dummyTab = await browser.tabs.create({ active: false });
+    const dummyTabId = dummyTab.id;
+    if (dummyTabId === undefined) {
+      throw new Error("ID of newly created dummy tab is undefined.");
+    }
+    await browser.tabs.hide(dummyTabId);
+    return dummyTabId;
   }
 
   async #createNewGroup(tabId: number): Promise<void> {
@@ -354,21 +371,23 @@ class TabbyCat {
     tabOrTabId: browser.tabs.Tab | number,
     tabAction: TabAction
   ): Promise<void> {
-    const tabGroups = await getTabGroups();
+    await this.#lock.acquire();
 
-    if (tabGroups) {
-      switch (tabAction) {
-        case "ADD": {
-          if (!this.#creatingTabs) {
+    try {
+      const tabGroups = await getTabGroups();
+
+      if (tabGroups) {
+        switch (tabAction) {
+          case "ADD": {
             const tab = tabOrTabId as browser.tabs.Tab;
 
             if (this.#isSpecialTab(tab.url)) {
-              return;
+              break;
             }
 
             const tabId = tab.id;
             if (tabId === undefined) {
-              return;
+              break;
             }
 
             if (tab.openerTabId === undefined) {
@@ -378,77 +397,88 @@ class TabbyCat {
             }
 
             await updateTabFavicon(tabId);
+
+            break;
           }
+          case "REMOVE": {
+            const tabId = tabOrTabId as number;
 
-          break;
-        }
-        case "REMOVE": {
-          const tabId = tabOrTabId as number;
+            const res = tabGroups
+              .map(
+                (tabGroup) =>
+                  ({
+                    ...tabGroup,
+                    tabs: tabGroup.tabs.filter(
+                      (tabInGroup) => tabInGroup.id !== tabId
+                    ),
+                  }) satisfies TabGroup
+              )
+              .filter(({ tabs }) => tabs.length !== 0);
 
-          const res = tabGroups.map(
-            (tabGroup) =>
-              ({
-                ...tabGroup,
-                tabs: tabGroup.tabs.filter(
-                  (tabInGroup) => tabInGroup.id !== tabId
-                ),
-              }) satisfies TabGroup
-          );
+            await this.#saveTabGroups(res);
 
-          await this.#saveTabGroups(res);
-
-          break;
-        }
-        default: {
-          throw new Error(`Invalid tab action: ${tabAction}.`);
+            break;
+          }
+          default: {
+            throw new Error(`Invalid tab action: ${tabAction}.`);
+          }
         }
       }
+    } finally {
+      this.#lock.release();
+    }
+  }
+
+  async #tabUpdateHandler(tabId: number) {
+    await this.#lock.acquire();
+
+    try {
+      const { status, title, url, favIconUrl } = await browser.tabs.get(tabId);
+
+      if (status === "complete" && url && !this.#isSpecialTab(url)) {
+        const tab = await browser.tabs.get(tabId);
+        const tabGroups = await getTabGroups();
+
+        const tabsTabGroup = tabGroups?.find((tabGroup) =>
+          tabGroup.tabs.map(({ id }) => id).includes(tabId)
+        );
+        if (tabsTabGroup === undefined) {
+          if (tab.openerTabId === undefined) {
+            await this.#createNewGroup(tabId);
+          } else {
+            await this.#addToGroup(tabId, tab.openerTabId);
+          }
+        } else {
+          const tabInTabGroup = tabsTabGroup.tabs.find(
+            ({ id }) => id === tabId
+          );
+
+          if (!tabInTabGroup || !tabGroups) {
+            return;
+          }
+
+          tabInTabGroup.url = url;
+          await this.#saveTabGroups(tabGroups);
+        }
+      }
+
+      if (status === "complete" && title) {
+        await this.#updateGroupName(tabId, title);
+        await updateTabTitle(tabId);
+      }
+
+      if (status === "complete" && favIconUrl) {
+        await updateTabFavicon(tabId);
+      }
+    } finally {
+      this.#lock.release();
     }
   }
 
   async #initTabListener(): Promise<void> {
     browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
     browser.tabs.onUpdated.addListener(
-      async (tabId) => {
-        const { status, title, url, favIconUrl } =
-          await browser.tabs.get(tabId);
-
-        if (status === "complete" && url && !this.#isSpecialTab(url)) {
-          const tab = await browser.tabs.get(tabId);
-          const tabGroups = await getTabGroups();
-
-          const tabsTabGroup = tabGroups?.find((tabGroup) =>
-            tabGroup.tabs.map(({ id }) => id).includes(tabId)
-          );
-          if (tabsTabGroup === undefined) {
-            if (tab.openerTabId === undefined) {
-              await this.#createNewGroup(tabId);
-            } else {
-              await this.#addToGroup(tabId, tab.openerTabId);
-            }
-          } else {
-            const tabInTabGroup = tabsTabGroup.tabs.find(
-              ({ id }) => id === tabId
-            );
-
-            if (!tabInTabGroup || !tabGroups) {
-              return;
-            }
-
-            tabInTabGroup.url = url;
-            await this.#saveTabGroups(tabGroups);
-          }
-        }
-
-        if (status === "complete" && title) {
-          await this.#updateGroupName(tabId, title);
-          await updateTabTitle(tabId);
-        }
-
-        if (status === "complete" && favIconUrl) {
-          await updateTabFavicon(tabId);
-        }
-      },
+      (tabId) => this.#tabUpdateHandler(tabId),
       /* eslint-disable-next-line */
       /* @ts-ignore */
       {

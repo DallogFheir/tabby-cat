@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0
+
+- removed Save Session setting (use Firefox's _Open previous windows and tabs_ option instead)
+
 ## v1.4
 
 - further fixes for Save Session

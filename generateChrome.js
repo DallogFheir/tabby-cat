@@ -19,8 +19,6 @@ const colors = [
   "#0078d7",
   "#886ce4",
   "#8e562e",
-  "#383838",
-  "#f2f2f2",
 ];
 
 const rules = colors.map(

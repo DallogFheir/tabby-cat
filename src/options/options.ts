@@ -11,7 +11,6 @@ Alpine.data(
       options: {
         colorIndicator: "begin",
         removeEmptyGroups: true,
-        saveSessions: true,
         colors: Object.keys(colorsToDots) as Color[],
       },
       colorsToDots,
