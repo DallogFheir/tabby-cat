@@ -125,7 +125,7 @@ class TabbyCat {
   }
 
   #isSpecialTab(url: Maybe<string>): boolean {
-    return !url || url.startsWith("about:") || url.startsWith("moz-extension:");
+    return !url || (!url.startsWith("http:") && !url.startsWith("https:"));
   }
 
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
@@ -420,7 +420,7 @@ class TabbyCat {
     await this.#lock.acquire();
 
     try {
-      const { status, title, url, favIconUrl } = await browser.tabs.get(tabId);
+      const { status, title, url } = await browser.tabs.get(tabId);
 
       if (status === "complete" && url && !this.#isSpecialTab(url)) {
         const tab = await browser.tabs.get(tabId);
@@ -454,7 +454,7 @@ class TabbyCat {
         await updateTabTitle(tabId);
       }
 
-      if (status === "complete" && favIconUrl) {
+      if (status === "complete") {
         await updateTabFavicon(tabId);
       }
     } finally {
