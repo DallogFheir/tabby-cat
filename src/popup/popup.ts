@@ -11,6 +11,7 @@ import type { AlpineTabGroupsData } from "../models/Alpine";
 import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "../common";
 import CirclePlus from "../icons/fa-icons/circle-plus-solid.svg";
 import FloppyDisk from "../icons/fa-icons/floppy-disk-solid.svg";
+import { UPDATE_MSG_TYPE, type UpdateMessage } from "../models/Message";
 
 Alpine.data(
   "tabGroups",
@@ -394,6 +395,7 @@ Alpine.data(
           return;
         }
 
+        let tabGroup: Maybe<TabGroup> = null;
         if (this.groupBeingEditedId !== null) {
           const tabGroup = tabGroups?.find(
             (tabGroup) => tabGroup.groupId === this.groupBeingEditedId
@@ -408,7 +410,7 @@ Alpine.data(
         } else {
           const freeId = getFreeId(tabGroups);
 
-          const tabGroup = {
+          tabGroup = {
             groupId: freeId,
             groupName: this.inputtedName,
             color: this.selectedColor,
@@ -423,6 +425,12 @@ Alpine.data(
           tabGroups: JSON.stringify(tabGroups),
         });
         await this.dispatchUpdateEvent();
+        if (tabGroup !== null) {
+          await browser.runtime.sendMessage({
+            messageType: UPDATE_MSG_TYPE,
+            tabIds: tabGroup.tabs.map(({ id }) => id),
+          } satisfies UpdateMessage);
+        }
         this.dismiss();
       },
 

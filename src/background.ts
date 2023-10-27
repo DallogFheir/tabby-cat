@@ -8,6 +8,7 @@ import {
   type UpdateToGo,
   type Tab,
 } from "./models/Tabs";
+import { UPDATE_MSG_TYPE, type UpdateMessage } from "./models/Message";
 import {
   getTabGroups,
   getOptions,
@@ -24,13 +25,9 @@ class TabbyCat {
 
   constructor() {
     if (!TabbyCat.#isInternallyConstructing) {
-      throw new TypeError("Use TabbyCat.initialize() instead.");
+      throw new TypeError("Use TabbyCat.getInstance() instead.");
     }
     TabbyCat.#isInternallyConstructing = false;
-    this.#initContextMenuListener();
-    this.#initTabListener();
-    this.#initStorageListener();
-    this.#initCommandListener();
   }
 
   static getInstance(): TabbyCat {
@@ -42,7 +39,17 @@ class TabbyCat {
     return TabbyCat.#instance;
   }
 
+  #initialize(): void {
+    this.#initContextMenuListener();
+    this.#initTabListener();
+    this.#initStorageListener();
+    this.#initCommandListener();
+    this.#initMessageListener();
+  }
+
   async install(): Promise<void> {
+    this.#initialize();
+
     const tabs = await browser.tabs.query({});
     let groupId = 1;
     const colors: Color[] = [];
@@ -83,6 +90,8 @@ class TabbyCat {
   }
 
   async handleStartup(): Promise<void> {
+    this.#initialize();
+
     await this.#lock.acquire();
     try {
       const tabs = await browser.tabs.query({});
@@ -518,6 +527,21 @@ class TabbyCat {
         default: {
           throw new Error(`Invalid command: ${command}.`);
         }
+      }
+    });
+  }
+
+  #initMessageListener(): void {
+    browser.runtime.onMessage.addListener(async (msg: unknown) => {
+      const message = msg as UpdateMessage;
+
+      if (message.messageType === UPDATE_MSG_TYPE) {
+        await this.#lock.acquire();
+        const updateFaviconsPromises = message.tabIds.map(
+          async (tabId) => await updateTabFavicon(tabId)
+        );
+        await Promise.all(updateFaviconsPromises);
+        this.#lock.release();
       }
     });
   }
