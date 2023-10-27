@@ -46,27 +46,24 @@ class TabbyCat {
     const tabs = await browser.tabs.query({});
     let groupId = 1;
     const colors: Color[] = [];
-    const tabGroupsPromises: Promise<TabGroup>[] = tabs
+    const tabGroupsPromises = tabs
       .filter(
         (tab) =>
           tab.id !== undefined &&
           tab.url !== undefined &&
           !this.#isSpecialTab(tab.url)
       )
-      .map(async (tab) => {
+      .map(async (tab): Promise<TabGroup> => {
         const color = await this.#getColor(colors);
         colors.push(color);
-
-        const dummyTabId = await this.#createDummyTab();
 
         return {
           groupId: groupId++,
           groupName: tab?.title ?? "New group",
           color,
           hidden: false,
-          tabs: [{ id: tab.id!, url: tab.url!, isDummy: false }],
+          tabs: [{ id: tab.id!, url: tab.url! }],
           updatesToGo: 0 as UpdateToGo,
-          dummyTabId,
         };
       });
     const tabGroups = await Promise.all(tabGroupsPromises);
@@ -301,16 +298,6 @@ class TabbyCat {
       .filter((tab) => tab.id !== undefined)
       .map(({ id }) => updateTabTitle(id as number));
     await Promise.all(updateTitlesPromises);
-  }
-
-  async #createDummyTab(): Promise<number> {
-    const dummyTab = await browser.tabs.create({ active: false });
-    const dummyTabId = dummyTab.id;
-    if (dummyTabId === undefined) {
-      throw new Error("ID of newly created dummy tab is undefined.");
-    }
-    await browser.tabs.hide(dummyTabId);
-    return dummyTabId;
   }
 
   async #createNewGroup(tabId: number): Promise<void> {
