@@ -71,8 +71,6 @@ class TabbyCat {
   }
 
   async install(): Promise<void> {
-    this.#initialize();
-
     const tabs = await browser.tabs.query({});
     let groupId = 1;
     const colors: Color[] = [];
@@ -97,7 +95,7 @@ class TabbyCat {
         };
       });
     const tabGroups = await Promise.all(tabGroupsPromises);
-    await this.#saveTabGroups(tabGroups);
+    await this.#saveTabGroups(tabGroups, true);
 
     await browser.storage.sync.set({
       options: JSON.stringify({
@@ -108,21 +106,16 @@ class TabbyCat {
     });
 
     await this.#updateAllTabsTitles();
-
     browser.runtime.openOptionsPage();
+
+    this.#initialize();
   }
 
   async handleStartup(): Promise<void> {
-    this.#initialize();
-
     await this.#lock.acquire();
     try {
       const tabs = await browser.tabs.query({});
       const tabGroups = await getTabGroups();
-
-      if (!tabGroups) {
-        return;
-      }
 
       const emptiedTabGroups = tabGroups.map((tabGroup) => ({
         ...tabGroup,
@@ -132,8 +125,14 @@ class TabbyCat {
       tabs.forEach((tab) => {
         const groupIdMatch = tab.favIconUrl?.match(TABBYCAT_DATA_URL_REGEXP);
 
-        if (!groupIdMatch || !tab.id || !tab.url) {
-          return;
+        if (!groupIdMatch) {
+          throw new Error(TEXTS.REGEXP_DID_NOT_MATCH_ERROR_MSG);
+        }
+        if (!tab.id) {
+          throw new Error(TEXTS.TAB_WITH_NO_ID_ERROR_MSG);
+        }
+        if (!tab.url) {
+          throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
         }
 
         const groupId = Number(groupIdMatch[2]);
@@ -142,7 +141,7 @@ class TabbyCat {
         );
 
         if (!tabGroup) {
-          return;
+          throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
         }
 
         tabGroup.tabs.push({ id: tab.id, url: tab.url });
@@ -151,6 +150,7 @@ class TabbyCat {
       await this.#saveTabGroups(emptiedTabGroups);
     } finally {
       this.#lock.release();
+      this.#initialize();
     }
   }
 
@@ -160,10 +160,20 @@ class TabbyCat {
     );
   }
 
-  async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
-    const removeEmptyGroups = (await getOptions())?.removeEmptyGroups;
-    if (removeEmptyGroups) {
-      tabGroups = tabGroups.filter((tabGroup) => tabGroup.tabs.length > 0);
+  async #saveTabGroups(
+    tabGroups: TabGroup[],
+    ignoreOptions = false
+  ): Promise<void> {
+    if (!ignoreOptions) {
+      const removeEmptyGroups = (await getOptions())?.removeEmptyGroups;
+
+      if (removeEmptyGroups === undefined) {
+        throw new Error(TEXTS.REMOVE_EMPTY_GROUPS_OPTION_UNDEFINED_ERROR_MSG);
+      }
+
+      if (removeEmptyGroups) {
+        tabGroups = tabGroups.filter((tabGroup) => tabGroup.tabs.length > 0);
+      }
     }
 
     await browser.storage.sync.set({
@@ -175,7 +185,7 @@ class TabbyCat {
     const options = await getOptions();
     const colors = options
       ? options.colors
-      : (Object.keys(colorsToDots) as (keyof typeof colorsToDots)[]);
+      : (Object.keys(colorsToDots) as Color[]);
 
     let colorsToPick: Readonly<Color[]> = colors.filter(
       (color) => !currentColors.includes(color)
@@ -191,7 +201,7 @@ class TabbyCat {
     _: browser.menus.OnClickData,
     tab: browser.tabs.Tab
   ): Promise<void> {
-    const tabGroups = (await getTabGroups()) ?? [];
+    const tabGroups = await getTabGroups();
 
     await browser.menus.removeAll();
 
@@ -237,19 +247,19 @@ class TabbyCat {
         String(info.menuItemId).match(MENU_ID_REGEXP)?.[1] ?? NaN
       );
       const tabGroups = await getTabGroups();
-      const newGroup = tabGroups?.find(
+
+      const newGroup = tabGroups.find(
         (tabGroup) => tabGroup.groupId === newGroupId
       );
-
-      if (!tabGroups || newGroup === undefined) {
-        return;
+      if (newGroup === undefined) {
+        throw new Error(TEXTS.TAB_GROUP_WITH_ID_NOT_FOUND_ERROR_MSG);
       }
 
       if (String(info.menuItemId).startsWith(MENU_IDS.OPEN_GROUP_IN)) {
         const linkUrl = info.linkUrl;
 
         if (linkUrl === undefined) {
-          return;
+          throw new Error(TEXTS.LINK_URL_UNDEFINED_ERROR_MSG);
         }
 
         const newTab = await browser.tabs.create({
@@ -258,7 +268,7 @@ class TabbyCat {
         const newTabId = newTab.id;
 
         if (newTabId === undefined) {
-          return;
+          throw new Error(TEXTS.CREATED_NEW_TAB_ID_UNDEFINED_ERROR_MSG);
         }
 
         newGroup.tabs.push({ id: newTabId, url: linkUrl });
@@ -266,15 +276,22 @@ class TabbyCat {
         await this.#saveTabGroups(tabGroups);
       } else {
         const tabId = tab.id;
+        if (tabId === undefined) {
+          throw new Error(TEXTS.TAB_WITH_NO_ID_ERROR_MSG);
+        }
+
         const tabUrl = tab.url;
-        const oldGroup = tabGroups?.find((tabGroup) =>
+        if (tabUrl === undefined) {
+          throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
+        }
+
+        const oldGroup = tabGroups.find((tabGroup) =>
           (
             tabGroup.tabs.map(({ id }) => id) as (number | undefined)[]
           ).includes(tabId)
         );
-
-        if (tabId === undefined || tabUrl === undefined || !oldGroup) {
-          return;
+        if (!oldGroup) {
+          throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
         }
 
         oldGroup.tabs = oldGroup.tabs.filter(
@@ -301,19 +318,17 @@ class TabbyCat {
   async #updateGroupName(tabId: number, title: string): Promise<void> {
     const tabGroups = await getTabGroups();
 
-    if (tabGroups) {
-      outer: for (const tabGroup of tabGroups) {
-        if (tabGroup.updatesToGo !== 0) {
-          for (const tabInGroup of tabGroup.tabs) {
-            if (tabInGroup.id === tabId) {
-              tabGroup.updatesToGo--;
+    outer: for (const tabGroup of tabGroups) {
+      if (tabGroup.updatesToGo !== 0) {
+        for (const tabInGroup of tabGroup.tabs) {
+          if (tabInGroup.id === tabId) {
+            tabGroup.updatesToGo--;
 
-              if (tabGroup.updatesToGo === 0) {
-                tabGroup.groupName = title;
-              }
-
-              break outer;
+            if (tabGroup.updatesToGo === 0) {
+              tabGroup.groupName = title;
             }
+
+            break outer;
           }
         }
       }
@@ -325,22 +340,24 @@ class TabbyCat {
   async #updateAllTabsTitles(): Promise<void> {
     const tabs = await browser.tabs.query({});
     const updateTitlesPromises = tabs
-      .filter((tab) => tab.id !== undefined)
+      .filter((tab) => tab.id !== undefined && !this.#isSpecialTab(tab.url))
       .map(({ id }) => updateTabTitle(id as number));
     await Promise.all(updateTitlesPromises);
   }
 
   async #createNewGroup(tabId: number): Promise<void> {
     const tabGroups = await getTabGroups();
+
     const tab = await browser.tabs.get(tabId);
     const tabUrl = tab.url;
+    if (tabUrl === undefined) {
+      throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
+    }
 
     if (
-      tabGroups &&
       tabGroups.every(
         (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
-      ) &&
-      tabUrl !== undefined
+      )
     ) {
       const freeId = getFreeId(tabGroups);
 
@@ -365,19 +382,24 @@ class TabbyCat {
 
   async #addToGroup(tabId: number, openerTabId: number): Promise<void> {
     const tabGroups = await getTabGroups();
-    const openerTabGroup = tabGroups?.find((tabGroup) =>
+
+    const openerTabGroup = tabGroups.find((tabGroup) =>
       tabGroup.tabs.map(({ id }) => id).includes(openerTabId)
     );
+    if (!openerTabGroup) {
+      throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
+    }
+
     const tab = await browser.tabs.get(tabId);
     const tabUrl = tab.url;
+    if (tabUrl === undefined) {
+      throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
+    }
 
     if (
-      tabGroups &&
       tabGroups.every(
         (tabGroup) => !tabGroup.tabs.map(({ id }) => id).includes(tabId)
-      ) &&
-      openerTabGroup &&
-      tabUrl
+      )
     ) {
       openerTabGroup.tabs.push({ id: tabId, url: tabUrl });
       await this.#saveTabGroups(tabGroups);
@@ -393,52 +415,50 @@ class TabbyCat {
     try {
       const tabGroups = await getTabGroups();
 
-      if (tabGroups) {
-        switch (tabAction) {
-          case TAB_ACTIONS.ADD: {
-            const tab = tabOrTabId as browser.tabs.Tab;
+      switch (tabAction) {
+        case TAB_ACTIONS.ADD: {
+          const tab = tabOrTabId as browser.tabs.Tab;
 
-            if (this.#isSpecialTab(tab.url)) {
-              break;
-            }
-
-            const tabId = tab.id;
-            if (tabId === undefined) {
-              break;
-            }
-
-            if (tab.openerTabId === undefined) {
-              await this.#createNewGroup(tabId);
-            } else {
-              await this.#addToGroup(tabId, tab.openerTabId);
-            }
-
-            await updateTabFavicon(tabId);
-
+          if (this.#isSpecialTab(tab.url)) {
             break;
           }
-          case TAB_ACTIONS.REMOVE: {
-            const tabId = tabOrTabId as number;
 
-            const res = tabGroups
-              .map(
-                (tabGroup) =>
-                  ({
-                    ...tabGroup,
-                    tabs: tabGroup.tabs.filter(
-                      (tabInGroup) => tabInGroup.id !== tabId
-                    ),
-                  }) satisfies TabGroup
-              )
-              .filter(({ tabs }) => tabs.length !== 0);
-
-            await this.#saveTabGroups(res);
-
-            break;
+          const tabId = tab.id;
+          if (tabId === undefined) {
+            throw new Error(TEXTS.TAB_WITH_NO_ID_ERROR_MSG);
           }
-          default: {
-            throw new Error(TEXTS.INVALID_TAB_ACTION_ERROR_MSG + tabAction);
+
+          if (tab.openerTabId === undefined) {
+            await this.#createNewGroup(tabId);
+          } else {
+            await this.#addToGroup(tabId, tab.openerTabId);
           }
+
+          await updateTabFavicon(tabId);
+
+          break;
+        }
+        case TAB_ACTIONS.REMOVE: {
+          const tabId = tabOrTabId as number;
+
+          const res = tabGroups
+            .map(
+              (tabGroup) =>
+                ({
+                  ...tabGroup,
+                  tabs: tabGroup.tabs.filter(
+                    (tabInGroup) => tabInGroup.id !== tabId
+                  ),
+                }) satisfies TabGroup
+            )
+            .filter(({ tabs }) => tabs.length !== 0);
+
+          await this.#saveTabGroups(res);
+
+          break;
+        }
+        default: {
+          throw new Error(TEXTS.INVALID_TAB_ACTION_ERROR_MSG + tabAction);
         }
       }
     } finally {
@@ -452,7 +472,11 @@ class TabbyCat {
     try {
       const { status, title, url } = await browser.tabs.get(tabId);
 
-      if (status === STATUS_COMPLETE && url && !this.#isSpecialTab(url)) {
+      if (url === undefined) {
+        throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
+      }
+
+      if (status === STATUS_COMPLETE && !this.#isSpecialTab(url)) {
         const tab = await browser.tabs.get(tabId);
         const tabGroups = await getTabGroups();
 
@@ -470,8 +494,8 @@ class TabbyCat {
             ({ id }) => id === tabId
           );
 
-          if (!tabInTabGroup || !tabGroups) {
-            return;
+          if (!tabInTabGroup) {
+            throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
           }
 
           tabInTabGroup.url = url;
@@ -532,7 +556,7 @@ class TabbyCat {
           const activeTabId = activeTab.id;
 
           if (activeTabId === undefined) {
-            return;
+            throw new Error(TEXTS.TAB_WITH_NO_ID_ERROR_MSG);
           }
 
           const newTab = await browser.tabs.create({
@@ -542,7 +566,7 @@ class TabbyCat {
           const newTabId = newTab.id;
 
           if (newTabId === undefined) {
-            return;
+            throw new Error(TEXTS.CREATED_NEW_TAB_ID_UNDEFINED_ERROR_MSG);
           }
 
           await this.#addToGroup(newTabId, activeTabId);
@@ -564,8 +588,8 @@ class TabbyCat {
 
       if (message.messageType === MESSAGE_TYPES.UPDATE) {
         await this.#lock.acquire();
-        const updateFaviconsPromises = message.tabIds.map(
-          async (tabId) => await updateTabFavicon(tabId)
+        const updateFaviconsPromises = message.tabIds.map((tabId) =>
+          updateTabFavicon(tabId)
         );
         await Promise.all(updateFaviconsPromises);
         this.#lock.release();

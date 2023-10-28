@@ -28,10 +28,7 @@ Alpine.data(
       shortcut: DEFAULT_SHORTCUT,
 
       async init() {
-        const options = await getOptions();
-        if (options) {
-          this.options = options;
-        }
+        this.options = await getOptions();
 
         const commands = await browser.commands.getAll();
         this.shortcut =

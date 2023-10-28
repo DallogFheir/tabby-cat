@@ -35,7 +35,7 @@ Alpine.data(
       selectedColor: Object.keys(colorsToDots)[0] as Color,
 
       async init() {
-        this.tabGroups = (await getTabGroups()) ?? [];
+        this.tabGroups = await getTabGroups();
 
         const activeTabs = await browser.tabs.query({ active: true });
         this.currentTabId = activeTabs[0].id ?? null;
@@ -43,10 +43,6 @@ Alpine.data(
 
       async dispatchUpdateEvent(): Promise<void> {
         const tabGroups = await getTabGroups();
-
-        if (!tabGroups) {
-          return;
-        }
 
         const updateEvent = new CustomEvent(POPUP_UPDATE_EVENT_NAME, {
           detail: {
@@ -59,10 +55,6 @@ Alpine.data(
       async sortTabs(): Promise<void> {
         const tabs = await browser.tabs.query({});
         const tabGroups = await getTabGroups();
-
-        if (!tabGroups) {
-          return;
-        }
 
         const tabsWithGroups = tabs
           .filter((tab) => tab.id !== undefined)
@@ -120,45 +112,43 @@ Alpine.data(
 
         const tabGroups = await getTabGroups();
 
-        if (tabGroups) {
-          const tabGroup = tabGroups.find(
-            (tabGroup) => tabGroup.groupId === groupId
+        const tabGroup = tabGroups.find(
+          (tabGroup) => tabGroup.groupId === groupId
+        );
+
+        if (tabGroup) {
+          const tabsInGroup = await Promise.all(
+            tabGroup.tabs.map(({ id }) => browser.tabs.get(id))
           );
+          const activeTab = tabsInGroup.find((tab) => tab.active);
+          if (action === TAB_GROUP_ACTIONS.HIDE && activeTab !== undefined) {
+            const allTabs = await browser.tabs.query({});
 
-          if (tabGroup) {
-            const tabsInGroup = await Promise.all(
-              tabGroup.tabs.map(async ({ id }) => await browser.tabs.get(id))
-            );
-            const activeTab = tabsInGroup.find((tab) => tab.active);
-            if (action === TAB_GROUP_ACTIONS.HIDE && activeTab !== undefined) {
-              const allTabs = await browser.tabs.query({});
-
-              const activeTabIdx = activeTab.index;
-              let finalIdx;
-              let addend = 1;
-              while (
-                (allTabs[(finalIdx = activeTabIdx + addend)]?.hidden ?? true) &&
-                (allTabs[(finalIdx = activeTabIdx - addend)]?.hidden ?? true)
-              ) {
-                addend++;
-              }
-
-              const nextOrPreviousTab = allTabs[finalIdx];
-              await browser.tabs.update(activeTab.id, { active: false });
-              await browser.tabs.update(nextOrPreviousTab.id, { active: true });
+            const activeTabIdx = activeTab.index;
+            let finalIdx;
+            let addend = 1;
+            while (
+              (allTabs[(finalIdx = activeTabIdx + addend)]?.hidden ?? true) &&
+              (allTabs[(finalIdx = activeTabIdx - addend)]?.hidden ?? true)
+            ) {
+              addend++;
             }
 
-            await func(tabGroup.tabs.map(({ id }) => id));
-            tabGroup.hidden = action === TAB_GROUP_ACTIONS.HIDE;
-            await browser.storage.sync.set({
-              tabGroups: JSON.stringify(tabGroups),
-            });
-
-            const activeTabs = await browser.tabs.query({ active: true });
-            this.currentTabId = activeTabs[0].id;
-
-            await this.dispatchUpdateEvent();
+            const nextOrPreviousTab = allTabs[finalIdx];
+            await browser.tabs.update(activeTab.id, { active: false });
+            await browser.tabs.update(nextOrPreviousTab.id, { active: true });
           }
+
+          await func(tabGroup.tabs.map(({ id }) => id));
+          tabGroup.hidden = action === TAB_GROUP_ACTIONS.HIDE;
+          await browser.storage.sync.set({
+            tabGroups: JSON.stringify(tabGroups),
+          });
+
+          const activeTabs = await browser.tabs.query({ active: true });
+          this.currentTabId = activeTabs[0].id;
+
+          await this.dispatchUpdateEvent();
         }
       },
 
@@ -166,93 +156,94 @@ Alpine.data(
         const tabGroups = await getTabGroups();
         const options = await getOptions();
 
-        if (tabGroups && options) {
-          if (options.removeEmptyGroups) {
-            await this.removeGroup(groupId);
-          } else {
-            const tabGroup = tabGroups.find(
-              (tabGroup) => tabGroup.groupId === groupId
-            );
+        if (options.removeEmptyGroups) {
+          await this.removeGroup(groupId);
+        } else {
+          const tabGroup = tabGroups.find(
+            (tabGroup) => tabGroup.groupId === groupId
+          );
 
-            if (tabGroup) {
-              await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
-
-              tabGroup.tabs = [];
-
-              await browser.storage.sync.set({
-                tabGroups: JSON.stringify(tabGroups),
-              });
-
-              const activeTabs = await browser.tabs.query({ active: true });
-              this.currentTabId = activeTabs[0].id;
-
-              await this.dispatchUpdateEvent();
-            }
+          if (!tabGroup) {
+            throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
           }
+
+          await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
+
+          tabGroup.tabs = [];
+
+          await browser.storage.sync.set({
+            tabGroups: JSON.stringify(tabGroups),
+          });
+
+          const activeTabs = await browser.tabs.query({ active: true });
+          this.currentTabId = activeTabs[0].id;
+
+          await this.dispatchUpdateEvent();
         }
       },
 
       async removeGroup(groupId: number): Promise<void> {
         const tabGroups = await getTabGroups();
 
-        if (tabGroups) {
-          const tabGroup = tabGroups.find(
-            (tabGroup) => tabGroup.groupId === groupId
-          );
+        const tabGroup = tabGroups.find(
+          (tabGroup) => tabGroup.groupId === groupId
+        );
 
-          if (tabGroup) {
-            const newTabGroups = tabGroups.filter(
-              (oldTabGroup) => oldTabGroup !== tabGroup
-            );
-            await browser.storage.sync.set({
-              tabGroups: JSON.stringify(newTabGroups),
-            });
-
-            await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
-
-            await this.dispatchUpdateEvent();
-          }
+        if (!tabGroup) {
+          throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
         }
+
+        const newTabGroups = tabGroups.filter(
+          (oldTabGroup) => oldTabGroup !== tabGroup
+        );
+        await browser.storage.sync.set({
+          tabGroups: JSON.stringify(newTabGroups),
+        });
+
+        await browser.tabs.remove(tabGroup.tabs.map(({ id }) => id));
+
+        await this.dispatchUpdateEvent();
       },
 
       async removeAllGroups(): Promise<void> {
         const tabGroups = await getTabGroups();
 
-        if (tabGroups) {
-          const tabIds = tabGroups.reduce((tabIdsAcc, tabGroup) => {
-            tabIdsAcc.push(...tabGroup.tabs.map(({ id }) => id));
-            return tabIdsAcc;
-          }, [] as number[]);
+        const tabIds = tabGroups.reduce((tabIdsAcc, tabGroup) => {
+          tabIdsAcc.push(...tabGroup.tabs.map(({ id }) => id));
+          return tabIdsAcc;
+        }, [] as number[]);
 
-          await browser.storage.sync.set({
-            tabGroups: JSON.stringify([]),
-          });
-          await browser.tabs.remove(tabIds);
+        await browser.storage.sync.set({
+          tabGroups: JSON.stringify([]),
+        });
+        await browser.tabs.remove(tabIds);
 
-          await this.dispatchUpdateEvent();
-        }
+        await this.dispatchUpdateEvent();
       },
 
       async openTabInGroup(groupId: number): Promise<void> {
         const tab = await browser.tabs.create({});
+        if (tab.id === undefined) {
+          throw new Error(TEXTS.CREATED_NEW_TAB_ID_UNDEFINED_ERROR_MSG);
+        }
+
         const tabGroups = await getTabGroups();
 
-        if (tabGroups && tab.id !== undefined) {
-          const tabGroup = tabGroups.find(
-            (tabGroup) => tabGroup.groupId === groupId
-          );
-
-          if (tabGroup) {
-            tabGroup.tabs.push({
-              id: tab.id,
-              url: tab.url ?? TEXTS.NEW_TAB_TITLE,
-            });
-
-            await browser.storage.sync.set({
-              tabGroups: JSON.stringify(tabGroups),
-            });
-          }
+        const tabGroup = tabGroups.find(
+          (tabGroup) => tabGroup.groupId === groupId
+        );
+        if (!tabGroup) {
+          throw new Error(TEXTS.TAB_GROUP_FOR_TAB_NOT_FOUND_ERROR_MSG);
         }
+
+        tabGroup.tabs.push({
+          id: tab.id,
+          url: tab.url ?? TEXTS.NEW_TAB_TITLE,
+        });
+
+        await browser.storage.sync.set({
+          tabGroups: JSON.stringify(tabGroups),
+        });
       },
 
       async peekTab(tabId: number): Promise<void> {
@@ -274,45 +265,55 @@ Alpine.data(
 
       async assignCurrentTabToGroup(groupId: number): Promise<void> {
         const currentTab = (await browser.tabs.query({ active: true }))[0];
-        const currentTabId = currentTab?.id;
-        const currentTabUrl = currentTab?.url;
+        if (!currentTab) {
+          throw new Error(TEXTS.NO_CURRENT_TAB_ERROR_MSG);
+        }
+
+        const currentTabId = currentTab.id;
+        if (currentTabId === undefined) {
+          throw new Error(TEXTS.TAB_WITH_NO_ID_ERROR_MSG);
+        }
+
+        const currentTabUrl = currentTab.url;
+        if (currentTabUrl === undefined) {
+          throw new Error(TEXTS.TAB_WITH_NO_URL_ERROR_MSG);
+        }
+
         const tabGroups = await getTabGroups();
         const options = await getOptions();
 
-        if (currentTabId && currentTabUrl && tabGroups && options) {
-          let newTabGroups = tabGroups.map((tabGroup) => {
-            if (tabGroup.tabs.map((tab) => tab.id).includes(currentTabId)) {
-              return {
-                ...tabGroup,
-                tabs: tabGroup.tabs.filter((tab) => tab.id !== currentTabId),
-              } satisfies TabGroup;
-            }
-
-            if (tabGroup.groupId === groupId) {
-              return {
-                ...tabGroup,
-                tabs: [
-                  ...tabGroup.tabs,
-                  { id: currentTabId, url: currentTabUrl },
-                ],
-              } satisfies TabGroup;
-            }
-
-            return tabGroup;
-          });
-
-          if (options.removeEmptyGroups) {
-            newTabGroups = newTabGroups.filter(
-              (tabGroup) => tabGroup.tabs.length > 0
-            );
+        let newTabGroups = tabGroups.map((tabGroup) => {
+          if (tabGroup.tabs.map((tab) => tab.id).includes(currentTabId)) {
+            return {
+              ...tabGroup,
+              tabs: tabGroup.tabs.filter((tab) => tab.id !== currentTabId),
+            } satisfies TabGroup;
           }
 
-          await browser.storage.sync.set({
-            tabGroups: JSON.stringify(newTabGroups),
-          });
-          await this.dispatchUpdateEvent();
-          await updateTabTitle(currentTabId);
+          if (tabGroup.groupId === groupId) {
+            return {
+              ...tabGroup,
+              tabs: [
+                ...tabGroup.tabs,
+                { id: currentTabId, url: currentTabUrl },
+              ],
+            } satisfies TabGroup;
+          }
+
+          return tabGroup;
+        });
+
+        if (options.removeEmptyGroups) {
+          newTabGroups = newTabGroups.filter(
+            (tabGroup) => tabGroup.tabs.length > 0
+          );
         }
+
+        await browser.storage.sync.set({
+          tabGroups: JSON.stringify(newTabGroups),
+        });
+        await this.dispatchUpdateEvent();
+        await updateTabTitle(currentTabId);
       },
 
       async getTabTitle(tabId: number): Promise<string> {
@@ -336,9 +337,17 @@ Alpine.data(
         return tab.favIconUrl;
       },
 
-      async getGroup(groupId: number): Promise<Maybe<TabGroup>> {
+      async getGroup(groupId: number): Promise<TabGroup> {
         const tabGroups = await getTabGroups();
-        return tabGroups?.find((tabGroup) => tabGroup.groupId === groupId);
+        const tabGroup = tabGroups.find(
+          (tabGroup) => tabGroup.groupId === groupId
+        );
+
+        if (!tabGroup) {
+          throw new Error(TEXTS.TAB_GROUP_WITH_ID_NOT_FOUND_ERROR_MSG);
+        }
+
+        return tabGroup;
       },
 
       async shouldIconBeDisabled(
@@ -379,11 +388,9 @@ Alpine.data(
       async editGroup(groupId: number): Promise<void> {
         const tabGroup = await this.getGroup(groupId);
 
-        if (tabGroup) {
-          this.groupBeingEditedId = groupId;
-          this.inputtedName = tabGroup.groupName;
-          this.selectedColor = tabGroup.color;
-        }
+        this.groupBeingEditedId = groupId;
+        this.inputtedName = tabGroup.groupName;
+        this.selectedColor = tabGroup.color;
       },
 
       selectColor(color: Color): void {
@@ -403,18 +410,14 @@ Alpine.data(
       async saveGroup(): Promise<void> {
         let tabGroups = await getTabGroups();
 
-        if (!tabGroups) {
-          return;
-        }
-
         let tabGroup: Maybe<TabGroup> = null;
         if (this.groupBeingEditedId !== null) {
-          const tabGroup = tabGroups?.find(
+          const tabGroup = tabGroups.find(
             (tabGroup) => tabGroup.groupId === this.groupBeingEditedId
           );
 
           if (!tabGroup) {
-            return;
+            throw new Error(TEXTS.TAB_GROUP_WITH_ID_NOT_FOUND_ERROR_MSG);
           }
 
           tabGroup.groupName = this.inputtedName;

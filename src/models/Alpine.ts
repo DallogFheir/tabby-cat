@@ -39,7 +39,7 @@ export interface AlpineTabGroupsData extends AlpineData {
   assignCurrentTabToGroup(groupId: number): Promise<void>;
   getTabTitle(tabId: number): Promise<string>;
   getTabFavicon(tabId: number): Promise<Maybe<string>>;
-  getGroup(groupId: number): Promise<Maybe<TabGroup>>;
+  getGroup(groupId: number): Promise<TabGroup>;
   shouldIconBeDisabled(icon: ActionIcon, tabCount: number): Promise<boolean>;
   shouldAssignIconBeDisabled(tabGroup: TabGroup): boolean;
   isTabVisible(tabId: number): Promise<boolean>;
