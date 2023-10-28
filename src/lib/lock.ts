@@ -1,3 +1,5 @@
+import { TEXTS } from "../constants";
+
 export class Lock {
   #acquired = false;
   #queue: (() => void)[] = [];
@@ -15,7 +17,7 @@ export class Lock {
 
   release() {
     if (!this.#acquired) {
-      throw new Error("Lock had not been acquired.");
+      throw new Error(TEXTS.LOCK_NOT_ACQUIRED_ERROR_MSG);
     }
 
     if (this.#queue.length === 0) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1
+
+- URLs other than `http://` and `https://` are now ignored
+- websites without a favicon now get a default favicon to allow their tabs to be colored
+- colors now update when changing them in the popup
+
 ## v2.0
 
 - removed Save Session setting (use Firefox's _Open previous windows and tabs_ option instead)

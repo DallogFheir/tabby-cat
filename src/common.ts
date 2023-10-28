@@ -1,19 +1,22 @@
-import type { Maybe } from "./models/Maybe";
-import type { Options } from "./models/Options";
+import type { Maybe } from "./models/common";
+import { COLOR_INDICATOR_OPTIONS, type Options } from "./models/Options";
+import { colorsToDots, type TabGroup } from "./models/Tabs";
 import {
-  colorsToDots,
+  CONTENT_SCRIPT_CHANGE_ACTIONS,
   type ContentScriptMessage,
-  type TabGroup,
-} from "./models/Tabs";
+} from "./models/Commands";
+import { STORAGE_KEYS } from "./constants";
 
 export const getTabGroups = async (): Promise<Maybe<TabGroup[]>> => {
-  const tabGroups = (await browser.storage.sync.get("tabGroups")).tabGroups;
+  const tabGroups = (await browser.storage.sync.get(STORAGE_KEYS.TAB_GROUPS))
+    .tabGroups;
 
   return tabGroups ? JSON.parse(tabGroups as string) : null;
 };
 
 export const getOptions = async (): Promise<Maybe<Options>> => {
-  const options = (await browser.storage.sync.get("options")).options;
+  const options = (await browser.storage.sync.get(STORAGE_KEYS.OPTIONS))
+    .options;
 
   return options ? JSON.parse(options as string) : null;
 };
@@ -54,22 +57,22 @@ export const updateTabTitle = async (tabId: number): Promise<void> => {
 
     let newTitle: string;
     switch (options.colorIndicator) {
-      case "off": {
+      case COLOR_INDICATOR_OPTIONS.OFF: {
         newTitle = titleWithoutDot;
         break;
       }
-      case "begin": {
+      case COLOR_INDICATOR_OPTIONS.BEGIN: {
         newTitle = `${dot} ${titleWithoutDot}`;
         break;
       }
-      case "end": {
+      case COLOR_INDICATOR_OPTIONS.END: {
         newTitle = `${titleWithoutDot} ${dot}`;
         break;
       }
     }
 
     browser.tabs.sendMessage(tabId, {
-      changeAction: "TITLE",
+      changeAction: CONTENT_SCRIPT_CHANGE_ACTIONS.TITLE,
       msg: newTitle,
     } satisfies ContentScriptMessage);
   }

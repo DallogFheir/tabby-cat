@@ -1,20 +1,30 @@
 import Alpine from "alpinejs";
-import type { Maybe } from "../models/Maybe";
+import type { Maybe } from "../models/common";
 import {
   colorsToDots,
   type Color,
   type TabGroup,
   UpdateToGo,
 } from "../models/Tabs";
-import type { TabGroupAction, ActionIcon } from "../models/Popup";
+import {
+  type TabGroupAction,
+  type ActionIcon,
+  TAB_GROUP_ACTIONS,
+} from "../models/Popup";
 import type { AlpineTabGroupsData } from "../models/Alpine";
 import { getTabGroups, getOptions, updateTabTitle, getFreeId } from "../common";
 import CirclePlus from "../icons/fa-icons/circle-plus-solid.svg";
 import FloppyDisk from "../icons/fa-icons/floppy-disk-solid.svg";
-import { UPDATE_MSG_TYPE, type UpdateMessage } from "../models/Message";
+import { MESSAGE_TYPES, type UpdateMessage } from "../models/Commands";
+import {
+  ALPINE_DATA_NAMES,
+  POPUP_UPDATE_EVENT_NAME,
+  type PopupSaveIconTitle,
+  TEXTS,
+} from "../constants";
 
 Alpine.data(
-  "tabGroups",
+  ALPINE_DATA_NAMES.TAB_GROUPS,
   () =>
     ({
       currentTabId: null,
@@ -38,7 +48,7 @@ Alpine.data(
           return;
         }
 
-        const updateEvent = new CustomEvent("x-tabbycat-update", {
+        const updateEvent = new CustomEvent(POPUP_UPDATE_EVENT_NAME, {
           detail: {
             tabGroups,
           },
@@ -95,16 +105,16 @@ Alpine.data(
       ): Promise<void> {
         let func: (tabIds: number | number[]) => Promise<void | number[]>;
         switch (action) {
-          case "HIDE": {
+          case TAB_GROUP_ACTIONS.HIDE: {
             func = browser.tabs.hide;
             break;
           }
-          case "SHOW": {
+          case TAB_GROUP_ACTIONS.SHOW: {
             func = browser.tabs.show;
             break;
           }
           default: {
-            throw new Error(`Unknown action: ${action}.`);
+            throw new Error(TEXTS.INVALID_ACTION_ERROR_MSG + action);
           }
         }
 
@@ -120,7 +130,7 @@ Alpine.data(
               tabGroup.tabs.map(async ({ id }) => await browser.tabs.get(id))
             );
             const activeTab = tabsInGroup.find((tab) => tab.active);
-            if (action === "HIDE" && activeTab !== undefined) {
+            if (action === TAB_GROUP_ACTIONS.HIDE && activeTab !== undefined) {
               const allTabs = await browser.tabs.query({});
 
               const activeTabIdx = activeTab.index;
@@ -139,7 +149,7 @@ Alpine.data(
             }
 
             await func(tabGroup.tabs.map(({ id }) => id));
-            tabGroup.hidden = action === "HIDE";
+            tabGroup.hidden = action === TAB_GROUP_ACTIONS.HIDE;
             await browser.storage.sync.set({
               tabGroups: JSON.stringify(tabGroups),
             });
@@ -235,7 +245,7 @@ Alpine.data(
           if (tabGroup) {
             tabGroup.tabs.push({
               id: tab.id,
-              url: tab.url ?? "New Tab",
+              url: tab.url ?? TEXTS.NEW_TAB_TITLE,
             });
 
             await browser.storage.sync.set({
@@ -310,7 +320,7 @@ Alpine.data(
         const title = tab.title;
 
         if (title === undefined) {
-          return "New tab";
+          return TEXTS.NEW_TAB_TITLE;
         }
 
         const dots = Object.values(colorsToDots);
@@ -339,7 +349,7 @@ Alpine.data(
           return true;
         }
 
-        if (icon === "HIDE") {
+        if (icon === TAB_GROUP_ACTIONS.HIDE) {
           const visibleTabsCount = (await browser.tabs.query({ hidden: false }))
             .length;
 
@@ -384,8 +394,10 @@ Alpine.data(
         return this.groupBeingEditedId === null ? CirclePlus : FloppyDisk;
       },
 
-      getSaveIconTitle(): string {
-        return this.groupBeingEditedId === null ? "add" : "save";
+      getSaveIconTitle(): PopupSaveIconTitle {
+        return this.groupBeingEditedId === null
+          ? TEXTS.POPUP_SAVE_ICON_TITLES.ADD
+          : TEXTS.POPUP_SAVE_ICON_TITLES.SAVE;
       },
 
       async saveGroup(): Promise<void> {
@@ -427,7 +439,7 @@ Alpine.data(
         await this.dispatchUpdateEvent();
         if (tabGroup !== null) {
           await browser.runtime.sendMessage({
-            messageType: UPDATE_MSG_TYPE,
+            messageType: MESSAGE_TYPES.UPDATE,
             tabIds: tabGroup.tabs.map(({ id }) => id),
           } satisfies UpdateMessage);
         }

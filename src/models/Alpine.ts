@@ -1,4 +1,5 @@
-import type { Maybe } from "./Maybe";
+import type { PopupSaveIconTitle } from "../constants";
+import type { Maybe, ValuesOf } from "./common";
 import type { Options } from "./Options";
 import type { ActionIcon, TabGroupAction } from "./Popup";
 import { colorsToDots, type Color, type TabGroup } from "./Tabs";
@@ -14,7 +15,7 @@ export interface AlpineOptionsData extends AlpineData {
   isColorDisabled(color: Color): boolean;
   setOptions(
     optionName: keyof Options,
-    value: Options[keyof Options]
+    value: ValuesOf<Options>
   ): Promise<void>;
   toggleColor(color: Color): Promise<void>;
 }
@@ -46,7 +47,7 @@ export interface AlpineTabGroupsData extends AlpineData {
   editGroup(groupId: number): Promise<void>;
   selectColor(color: Color): void;
   getSaveIconSrc(): string;
-  getSaveIconTitle(): string;
+  getSaveIconTitle(): PopupSaveIconTitle;
   saveGroup(): void;
   dismiss(): void;
 }

@@ -1,5 +1,14 @@
-import type { Maybe } from "./models/Maybe";
-import type { ContentScriptMessage } from "./models/Tabs";
+import type { Maybe } from "./models/common";
+import {
+  CONTENT_SCRIPT_CHANGE_ACTIONS,
+  type ContentScriptMessage,
+} from "./models/Commands";
+import {
+  FAVICON_LINK_SELECTOR,
+  FAVICON_REL_ATTRIBUTE,
+  LINK_ELEMENT,
+  TEXTS,
+} from "./constants";
 
 const changeTitle = (title: string): void => {
   document.title = title;
@@ -7,12 +16,12 @@ const changeTitle = (title: string): void => {
 
 const changeFavicon = (faviconDataUrl: string): void => {
   let faviconLink = document.querySelector(
-    "link[rel~='icon']"
+    FAVICON_LINK_SELECTOR
   ) as Maybe<HTMLLinkElement>;
 
   if (faviconLink == null) {
-    faviconLink = document.createElement("link");
-    faviconLink.rel = "icon";
+    faviconLink = document.createElement(LINK_ELEMENT);
+    faviconLink.rel = FAVICON_REL_ATTRIBUTE;
     document.head.append(faviconLink);
   }
 
@@ -25,16 +34,16 @@ const receiveMessage: browser.runtime.onMessageVoid = (
   const msg = message as ContentScriptMessage;
 
   switch (msg.changeAction) {
-    case "TITLE": {
+    case CONTENT_SCRIPT_CHANGE_ACTIONS.TITLE: {
       changeTitle(msg.msg);
       break;
     }
-    case "FAVICON": {
+    case CONTENT_SCRIPT_CHANGE_ACTIONS.FAVICON: {
       changeFavicon(msg.msg);
       break;
     }
     default: {
-      throw new Error(`Invalid action: ${msg.changeAction}.`);
+      throw new Error(TEXTS.INVALID_ACTION_ERROR_MSG + msg.changeAction);
     }
   }
 };

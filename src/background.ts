@@ -1,5 +1,9 @@
-import type { Maybe } from "./models/Maybe";
-import type { Options, OptionsChange } from "./models/Options";
+import type { Maybe } from "./models/common";
+import {
+  COLOR_INDICATOR_OPTIONS,
+  type Options,
+  type OptionsChange,
+} from "./models/Options";
 import {
   colorsToDots,
   type Color,
@@ -7,8 +11,14 @@ import {
   type TabGroup,
   type UpdateToGo,
   type Tab,
+  TAB_ACTIONS,
 } from "./models/Tabs";
-import { UPDATE_MSG_TYPE, type UpdateMessage } from "./models/Message";
+import {
+  EXTENSION_COMMANDS,
+  ExtensionCommand,
+  MESSAGE_TYPES,
+  type UpdateMessage,
+} from "./models/Commands";
 import {
   getTabGroups,
   getOptions,
@@ -17,6 +27,19 @@ import {
   getFreeId,
 } from "./common";
 import { Lock } from "./lib/lock";
+import {
+  ALLOWED_PROTOCOLS,
+  INSTALL__REASON,
+  MENU_CONTEXTS,
+  MENU_IDS,
+  MENU_ID_REGEXP,
+  MENU_TYPES,
+  NEW_TAB_URL,
+  STATUS_COMPLETE,
+  TABBYCAT_DATA_URL_REGEXP,
+  TEXTS,
+  WATCHED_TAB_PROPERTIES,
+} from "./constants";
 
 class TabbyCat {
   static #isInternallyConstructing = false;
@@ -25,7 +48,7 @@ class TabbyCat {
 
   constructor() {
     if (!TabbyCat.#isInternallyConstructing) {
-      throw new TypeError("Use TabbyCat.getInstance() instead.");
+      throw new TypeError(TEXTS.CONSTRUCTOR_USED_ERROR_MSG);
     }
     TabbyCat.#isInternallyConstructing = false;
   }
@@ -66,7 +89,7 @@ class TabbyCat {
 
         return {
           groupId: groupId++,
-          groupName: tab?.title ?? "New group",
+          groupName: tab?.title ?? TEXTS.NEW_GROUP_TITLE,
           color,
           hidden: false,
           tabs: [{ id: tab.id!, url: tab.url! }],
@@ -78,7 +101,7 @@ class TabbyCat {
 
     await browser.storage.sync.set({
       options: JSON.stringify({
-        colorIndicator: "begin",
+        colorIndicator: COLOR_INDICATOR_OPTIONS.BEGIN,
         removeEmptyGroups: true,
         colors: Object.keys(colorsToDots) as Color[],
       } satisfies Options),
@@ -107,9 +130,7 @@ class TabbyCat {
       }));
 
       tabs.forEach((tab) => {
-        const groupIdMatch = tab.favIconUrl?.match(
-          /x-tabby-cat=(e81224|f7630c|fff100|16c60c|0078d7|886ce4|8e562e)\/(\d+)/
-        );
+        const groupIdMatch = tab.favIconUrl?.match(TABBYCAT_DATA_URL_REGEXP);
 
         if (!groupIdMatch || !tab.id || !tab.url) {
           return;
@@ -134,7 +155,9 @@ class TabbyCat {
   }
 
   #isSpecialTab(url: Maybe<string>): boolean {
-    return !url || (!url.startsWith("http:") && !url.startsWith("https:"));
+    return (
+      !url || ALLOWED_PROTOCOLS.every((protocol) => !url.startsWith(protocol))
+    );
   }
 
   async #saveTabGroups(tabGroups: TabGroup[]): Promise<void> {
@@ -168,10 +191,7 @@ class TabbyCat {
     _: browser.menus.OnClickData,
     tab: browser.tabs.Tab
   ): Promise<void> {
-    const tabGroups = JSON.parse(
-      ((await browser.storage.sync.get("tabGroups"))
-        ?.tabGroups as Maybe<string>) ?? "[]"
-    ) as TabGroup[];
+    const tabGroups = (await getTabGroups()) ?? [];
 
     await browser.menus.removeAll();
 
@@ -180,13 +200,13 @@ class TabbyCat {
         const colorIndicator = colorsToDots[group.color];
 
         browser.menus.create({
-          id: `group-${group.groupId}`,
+          id: MENU_IDS.GROUP + String(group.groupId),
           title: `${colorIndicator} ${group.groupName}`,
-          type: "radio",
+          type: MENU_TYPES.RADIO,
           checked:
             group.tabs.find((tabInGroup) => tabInGroup.id === tab.id) !==
             undefined,
-          contexts: ["tab"],
+          contexts: [MENU_CONTEXTS.TAB],
         });
       });
     }
@@ -195,10 +215,11 @@ class TabbyCat {
       const colorIndicator = colorsToDots[group.color];
 
       browser.menus.create({
-        id: `open-group-${group.groupId}`,
-        title: `Open in ${colorIndicator} ${group.groupName}`,
-        type: "normal",
-        contexts: ["link"],
+        id: MENU_IDS.OPEN_GROUP_IN + String(group.groupId),
+        title:
+          TEXTS.MENU_OPEN_IN_TITLE + `${colorIndicator} ${group.groupName}`,
+        type: MENU_TYPES.NORMAL,
+        contexts: [MENU_CONTEXTS.LINK],
       });
     });
 
@@ -213,7 +234,7 @@ class TabbyCat {
 
     try {
       const newGroupId = Number(
-        String(info.menuItemId).match(/^(?:open-)?group-(\d+)$/)?.[1] ?? NaN
+        String(info.menuItemId).match(MENU_ID_REGEXP)?.[1] ?? NaN
       );
       const tabGroups = await getTabGroups();
       const newGroup = tabGroups?.find(
@@ -224,7 +245,7 @@ class TabbyCat {
         return;
       }
 
-      if (String(info.menuItemId).startsWith("open-group-")) {
+      if (String(info.menuItemId).startsWith(MENU_IDS.OPEN_GROUP_IN)) {
         const linkUrl = info.linkUrl;
 
         if (linkUrl === undefined) {
@@ -326,13 +347,13 @@ class TabbyCat {
       const res = tabGroups.concat([
         {
           groupId: freeId,
-          groupName: tab?.title ?? "New group",
+          groupName: tab?.title ?? TEXTS.NEW_GROUP_TITLE,
           color: await this.#getColor(
             tabGroups.map((tabGroup) => tabGroup.color)
           ),
           hidden: false,
           tabs: [{ id: tabId, url: tabUrl }],
-          updatesToGo: tab.url === "about:newtab" ? 2 : 1,
+          updatesToGo: tab.url === NEW_TAB_URL ? 2 : 1,
         },
       ]);
 
@@ -374,7 +395,7 @@ class TabbyCat {
 
       if (tabGroups) {
         switch (tabAction) {
-          case "ADD": {
+          case TAB_ACTIONS.ADD: {
             const tab = tabOrTabId as browser.tabs.Tab;
 
             if (this.#isSpecialTab(tab.url)) {
@@ -396,7 +417,7 @@ class TabbyCat {
 
             break;
           }
-          case "REMOVE": {
+          case TAB_ACTIONS.REMOVE: {
             const tabId = tabOrTabId as number;
 
             const res = tabGroups
@@ -416,7 +437,7 @@ class TabbyCat {
             break;
           }
           default: {
-            throw new Error(`Invalid tab action: ${tabAction}.`);
+            throw new Error(TEXTS.INVALID_TAB_ACTION_ERROR_MSG + tabAction);
           }
         }
       }
@@ -431,7 +452,7 @@ class TabbyCat {
     try {
       const { status, title, url } = await browser.tabs.get(tabId);
 
-      if (status === "complete" && url && !this.#isSpecialTab(url)) {
+      if (status === STATUS_COMPLETE && url && !this.#isSpecialTab(url)) {
         const tab = await browser.tabs.get(tabId);
         const tabGroups = await getTabGroups();
 
@@ -458,12 +479,12 @@ class TabbyCat {
         }
       }
 
-      if (status === "complete" && title) {
+      if (status === STATUS_COMPLETE && title) {
         await this.#updateGroupName(tabId, title);
         await updateTabTitle(tabId);
       }
 
-      if (status === "complete") {
+      if (status === STATUS_COMPLETE) {
         await updateTabFavicon(tabId);
       }
     } finally {
@@ -472,17 +493,19 @@ class TabbyCat {
   }
 
   async #initTabListener(): Promise<void> {
-    browser.tabs.onCreated.addListener((tab) => this.#tabListener(tab, "ADD"));
+    browser.tabs.onCreated.addListener((tab) =>
+      this.#tabListener(tab, TAB_ACTIONS.ADD)
+    );
     browser.tabs.onUpdated.addListener(
       (tabId) => this.#tabUpdateHandler(tabId),
       /* eslint-disable-next-line */
       /* @ts-ignore */
       {
-        properties: ["status", "title", "url", "favIconUrl"],
+        properties: WATCHED_TAB_PROPERTIES,
       }
     );
     browser.tabs.onRemoved.addListener((tabId) =>
-      this.#tabListener(tabId, "REMOVE")
+      this.#tabListener(tabId, TAB_ACTIONS.REMOVE)
     );
   }
 
@@ -501,8 +524,10 @@ class TabbyCat {
 
   #initCommandListener(): void {
     browser.commands.onCommand.addListener(async (command) => {
-      switch (command) {
-        case "open-new-tab-in-group": {
+      const extensionCommand = command as ExtensionCommand;
+
+      switch (extensionCommand) {
+        case EXTENSION_COMMANDS.OPEN_NEW_TAB_IN_GROUP: {
           const activeTab = (await browser.tabs.query({ active: true }))[0];
           const activeTabId = activeTab.id;
 
@@ -525,7 +550,9 @@ class TabbyCat {
           break;
         }
         default: {
-          throw new Error(`Invalid command: ${command}.`);
+          throw new Error(
+            TEXTS.INVALID_EXTENSION_COMMAND_ERROR_MSG + extensionCommand
+          );
         }
       }
     });
@@ -535,7 +562,7 @@ class TabbyCat {
     browser.runtime.onMessage.addListener(async (msg: unknown) => {
       const message = msg as UpdateMessage;
 
-      if (message.messageType === UPDATE_MSG_TYPE) {
+      if (message.messageType === MESSAGE_TYPES.UPDATE) {
         await this.#lock.acquire();
         const updateFaviconsPromises = message.tabIds.map(
           async (tabId) => await updateTabFavicon(tabId)
@@ -550,7 +577,7 @@ class TabbyCat {
 browser.runtime.onInstalled.addListener(({ reason }) => {
   const tabbyCat = TabbyCat.getInstance();
 
-  if (reason === "install") {
+  if (reason === INSTALL__REASON) {
     tabbyCat.install();
   }
 });

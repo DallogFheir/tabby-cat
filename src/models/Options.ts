@@ -1,9 +1,19 @@
 import type { Color } from "./Tabs";
+import { ValuesOf } from "./common";
 
-export type ColorIndicatorOption = "off" | "begin" | "end";
+export const COLOR_INDICATOR_OPTIONS = {
+  OFF: "off",
+  BEGIN: "begin",
+  END: "end",
+} as const;
 
+export const OPTIONS = {
+  COLOR_INDICATOR: "colorIndicator",
+  REMOVE_EMPTY_GROUPS: "removeEmptyGroups",
+  COLORS: "colors",
+} as const;
 export interface Options {
-  colorIndicator: ColorIndicatorOption;
+  colorIndicator: ValuesOf<typeof COLOR_INDICATOR_OPTIONS>;
   removeEmptyGroups: boolean;
   colors: Color[];
 }

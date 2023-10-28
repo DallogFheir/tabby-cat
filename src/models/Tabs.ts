@@ -1,3 +1,5 @@
+import type { ValuesOf } from "./common";
+
 export const colorsToDots = {
   "#e81224": "🔴",
   "#f7630c": "🟠",
@@ -26,11 +28,5 @@ export interface TabGroup {
   updatesToGo: UpdateToGo;
 }
 
-export type TabAction = "ADD" | "REMOVE";
-
-export type ContentScriptChangeAction = "TITLE" | "FAVICON";
-
-export interface ContentScriptMessage {
-  changeAction: ContentScriptChangeAction;
-  msg: string;
-}
+export const TAB_ACTIONS = { ADD: "ADD", REMOVE: "REMOVE" } as const;
+export type TabAction = ValuesOf<typeof TAB_ACTIONS>;
