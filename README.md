@@ -1,3 +1,9 @@
+⛔ TabbyCat has been discontinued ⛔
+
+WebExtensions API proved to be impossible to work with when it comes to things like changing the color of a tab or saving sessions when also using Multi-Account Containers/Temporary Containers, and other, better extensions already exist that achieve the same goal of grouping tabs together, like [Sidebery](https://addons.mozilla.org/en-US/firefox/addon/sidebery).
+
+Archived homepage:
+
 # tabby-cat
 
 ![](./src/icons/icon-48.png) **TabbyCat**
