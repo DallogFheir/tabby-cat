@@ -4,7 +4,7 @@ WebExtensions API proved to be impossible to work with when it comes to things l
 
 Archived homepage:
 
-# tabby-cat
+# Tabby Cat
 
 ![](./src/icons/icon-48.png) **TabbyCat**
 
